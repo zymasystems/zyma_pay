@@ -59,7 +59,9 @@ function isApiModeEnabled() {
 }
 
 function toApiPaymentStatus(status) {
-    return status === "paid" ? "paid" : "awaiting_reflection";
+    // Backend PaymentStatus enum is numeric because ASP.NET JSON enum-string
+    // conversion is not enabled: AwaitingReflection=0, Paid=1, Cancelled=2.
+    return status === "paid" ? 1 : status === "cancelled" ? 2 : 0;
 }
 
 function toUiPaymentStatus(status) {
