@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Receipts — Zyma Pay</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="invoice-page">
+    <header class="invoice-topbar">
+        <a class="auth-brand invoice-brand" href="dashboard.html" aria-label="Back to Zyma Pay dashboard">
+            <span class="brand-mark"><img src="images/5.png" alt="Zyma Systems logo"></span>
+            <span class="brand-copy">
+                <strong>ZYMA</strong>
+                <small>PAYMENTS</small>
+            </span>
+        </a>
+        <a class="invoice-back-link" href="dashboard.html">← Dashboard</a>
+    </header>
+
+    <main class="invoice-content">
+        <div class="page-heading compact invoice-page-heading">
+            <div>
+                <span class="eyebrow">BILLING</span>
+                <h1>Sales Receipts</h1>
+                <p>Create receipts for payments received from clients.</p>
+                <nav class="billing-document-nav" aria-label="Billing documents">
+                    <a href="invoices.html">Invoices</a>
+                    <a class="active" href="sales-receipts.html" aria-current="page">Sales Receipts</a>
+                </nav>
+            </div>
+            <button class="primary-button" id="showReceiptForm" type="button">+ Create sales receipt</button>
+        </div>
+
+        <div class="auth-prototype-notice invoice-storage-notice" role="status">
+            <strong>Receipt records are stored in this browser</strong>
+            <p>Records are not yet shared with other staff or saved to a server.</p>
+        </div>
+
+        <div class="invoice-summary-grid receipt-summary-grid" aria-label="Sales receipt total">
+            <article class="invoice-summary-card">
+                <span>Total sales receipts</span>
+                <strong id="receiptCountTotal">0</strong>
+            </article>
+        </div>
+
+        <section class="form-panel invoice-register-panel">
+            <div class="invoice-register-toolbar">
+                <div>
+                    <h2>Sales receipt register</h2>
+                    <p>Review and download receipts for payments received.</p>
+                </div>
+                <div class="invoice-register-filters">
+                    <input id="receiptSearch" type="search" placeholder="Search receipt or client" aria-label="Search sales receipts">
+                </div>
+            </div>
+            <div class="receipt-register-head" aria-hidden="true">
+                <span>RECEIPT</span>
+                <span>CLIENT</span>
+                <span>RECEIPT DATE</span>
+                <span>REFERENCE</span>
+                <span>AMOUNT</span>
+                <span>ACTIONS</span>
+            </div>
+            <p id="receiptRegisterMessage" class="invoice-register-message" role="status" aria-live="polite"></p>
+            <div id="savedReceipts" class="saved-invoice-list">
+                <p class="empty-invoices">No sales receipts yet. Select “Create sales receipt” to get started.</p>
+            </div>
+        </section>
+
+        <section class="form-panel invoice-form-panel" id="receiptFormPanel" hidden>
+            <div class="form-panel-heading">
+                <span class="step-number">01</span>
+                <div>
+                    <h2>Sales receipt details</h2>
+                    <p>Record who paid, how they paid, and what the payment covered.</p>
+                </div>
+            </div>
+
+            <form id="receiptForm">
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="receiptClient">Client / company</label>
+                        <input id="receiptClient" type="text" autocomplete="organization" required>
+                    </div>
+                    <div class="field">
+                        <label for="receiptNumber">Sales receipt number</label>
+                        <input id="receiptNumber" type="text" required>
+                    </div>
+                    <div class="field">
+                        <label for="receiptDate">Receipt date</label>
+                        <input id="receiptDate" type="date" required>
+                    </div>
+                    <div class="field">
+                        <label for="receiptReference">Reference</label>
+                        <input id="receiptReference" type="text" placeholder="Invoice number or payment reference">
+                    </div>
+                    <div class="field">
+                        <label for="receiptPaymentMode">Payment mode</label>
+                        <select id="receiptPaymentMode" required>
+                            <option value="Bank Transfer" selected>Bank Transfer</option>
+                            <option value="EFT">EFT</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Debit Card">Debit Card</option>
+                            <option value="Credit Card">Credit Card</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="field full">
+                        <label for="receiptNotes">Notes</label>
+                        <textarea id="receiptNotes" rows="3">Thank you for choosing Zyma Systems (Pty) Ltd. We appreciate your trust in our services and look forward to working with you further.</textarea>
+                    </div>
+                </div>
+
+                <div class="invoice-items-heading">
+                    <div>
+                        <h2>Line items</h2>
+                        <p>List the products or services covered by this payment.</p>
+                    </div>
+                    <button class="secondary-button" id="addReceiptItem" type="button">+ Add item</button>
+                </div>
+                <div class="invoice-item-list" id="receiptItems">
+                    <div class="invoice-item-row">
+                        <div class="field invoice-item-description">
+                            <label>Description</label>
+                            <input class="item-description" type="text" required>
+                        </div>
+                        <div class="field invoice-item-quantity">
+                            <label>Quantity</label>
+                            <input class="item-quantity" type="number" min="0.01" step="0.01" value="1" required>
+                        </div>
+                        <div class="field invoice-item-rate">
+                            <label>Unit price (R)</label>
+                            <input class="item-rate" type="number" min="0" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="invoice-item-total">
+                            <span>Line total</span>
+                            <strong class="item-line-total">R0.00</strong>
+                        </div>
+                        <button class="remove-invoice-item" type="button" aria-label="Remove this receipt item" disabled>×</button>
+                    </div>
+                </div>
+                <div class="invoice-bottom-row">
+                    <span></span>
+                    <div class="invoice-totals" aria-live="polite">
+                        <div><span>Subtotal</span><strong id="receiptSubtotal">R0.00</strong></div>
+                        <div class="invoice-grand-total"><span>Total received</span><strong id="receiptTotal">R0.00</strong></div>
+                    </div>
+                </div>
+                <div class="invoice-form-actions">
+                    <button class="primary-button" type="submit">Create sales receipt</button>
+                    <button class="secondary-button" id="cancelReceiptForm" type="button">Cancel</button>
+                    <p id="receiptFormMessage" class="auth-form-message" aria-live="polite"></p>
+                </div>
+            </form>
+        </section>
+
+        <section class="invoice-print-preview" id="receiptPrintPreview" hidden aria-live="polite">
+            <div class="invoice-preview-actions">
+                <a class="primary-button" id="downloadReceiptPdf" href="#" download>Download PDF</a>
+            </div>
+            <iframe id="receiptPdfViewer" title="Sales receipt PDF preview"></iframe>
+        </section>
+    </main>
+
+    <template id="receiptItemTemplate">
+        <div class="invoice-item-row">
+            <div class="field invoice-item-description">
+                <label>Description</label>
+                <input class="item-description" type="text" required>
+            </div>
+            <div class="field invoice-item-quantity">
+                <label>Quantity</label>
+                <input class="item-quantity" type="number" min="0.01" step="0.01" value="1" required>
+            </div>
+            <div class="field invoice-item-rate">
+                <label>Unit price (R)</label>
+                <input class="item-rate" type="number" min="0" step="0.01" placeholder="0.00" required>
+            </div>
+            <div class="invoice-item-total">
+                <span>Line total</span>
+                <strong class="item-line-total">R0.00</strong>
+            </div>
+            <button class="remove-invoice-item" type="button" aria-label="Remove this receipt item">×</button>
+        </div>
+    </template>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/sales-receipts.js"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoices — Zyma Pay</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="invoice-page">
+    <header class="invoice-topbar">
+        <a class="auth-brand invoice-brand" href="dashboard.html" aria-label="Back to Zyma Pay dashboard">
+            <span class="brand-mark"><img src="images/5.png" alt="Zyma Systems logo"></span>
+            <span class="brand-copy">
+                <strong>ZYMA</strong>
+                <small>PAYMENTS</small>
+            </span>
+        </a>
+        <a class="invoice-back-link" href="dashboard.html">← Dashboard</a>
+    </header>
+
+    <main class="invoice-content">
+        <div class="page-heading compact invoice-page-heading">
+            <div>
+                <span class="eyebrow">BILLING</span>
+                <h1>Invoices</h1>
+                <p>Create, track, and download client invoices.</p>
+                <nav class="billing-document-nav" aria-label="Billing documents">
+                    <a class="active" href="invoices.html" aria-current="page">Invoices</a>
+                    <a href="sales-receipts.html">Sales Receipts</a>
+                </nav>
+            </div>
+            <button class="primary-button" id="showInvoiceForm" type="button">+ Create invoice</button>
+        </div>
+
+        <div class="auth-prototype-notice invoice-storage-notice" role="status">
+            <strong>Invoice records are stored in this browser</strong>
+            <p>Records and status changes are not yet shared with other staff or saved to a server. Set an invoice to Sent only after sending it to the client.</p>
+        </div>
+
+        <div class="invoice-summary-grid" aria-label="Invoice totals by status">
+            <article class="invoice-summary-card">
+                <span>Total invoices</span>
+                <strong id="invoiceCountTotal">0</strong>
+            </article>
+            <article class="invoice-summary-card">
+                <span>Draft</span>
+                <strong id="invoiceCountDraft">0</strong>
+            </article>
+            <article class="invoice-summary-card">
+                <span>Sent</span>
+                <strong id="invoiceCountSent">0</strong>
+            </article>
+            <article class="invoice-summary-card">
+                <span>Paid</span>
+                <strong id="invoiceCountPaid">0</strong>
+            </article>
+        </div>
+
+        <section class="form-panel invoice-register-panel">
+            <div class="invoice-register-toolbar">
+                <div>
+                    <h2>Invoice register</h2>
+                    <p>Review invoice amounts, due dates, and current status.</p>
+                </div>
+                <div class="invoice-register-filters">
+                    <input id="invoiceSearch" type="search" placeholder="Search invoice or client" aria-label="Search invoices">
+                    <select id="invoiceStatusFilter" aria-label="Filter invoices by status">
+                        <option value="all">All statuses</option>
+                        <option value="draft">Draft</option>
+                        <option value="sent">Sent</option>
+                        <option value="paid">Paid</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="invoice-register-head" aria-hidden="true">
+                <span>INVOICE</span>
+                <span>CLIENT</span>
+                <span>ISSUED</span>
+                <span>DUE DATE</span>
+                <span>AMOUNT</span>
+                <span>STATUS</span>
+                <span>ACTIONS</span>
+            </div>
+            <p id="invoiceRegisterMessage" class="invoice-register-message" role="status" aria-live="polite"></p>
+            <div id="savedInvoices" class="saved-invoice-list">
+                <p class="empty-invoices">No invoices yet. Select “Create invoice” to get started.</p>
+            </div>
+        </section>
+
+        <section class="form-panel invoice-form-panel" id="invoiceFormPanel" hidden>
+            <div class="form-panel-heading">
+                <span class="step-number">01</span>
+                <div>
+                    <h2>Invoice details</h2>
+                    <p>Enter the client, invoice dates, and items to be billed.</p>
+                </div>
+            </div>
+
+            <form id="invoiceForm">
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="invoiceClient">Client / company</label>
+                        <input id="invoiceClient" type="text" autocomplete="organization" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="invoiceEmail">Client email</label>
+                        <input id="invoiceEmail" type="email" autocomplete="email" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="invoiceBillingAddress">Billing address</label>
+                        <textarea id="invoiceBillingAddress" rows="3"></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label for="invoiceNumber">Invoice number</label>
+                        <input id="invoiceNumber" type="text" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="invoiceIssueDate">Issue date</label>
+                        <input id="invoiceIssueDate" type="date" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="invoiceDueDate">Due date</label>
+                        <input id="invoiceDueDate" type="date" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="invoiceTerms">Payment terms</label>
+                        <select id="invoiceTerms">
+                            <option value="Due on Receipt" selected>Due on Receipt</option>
+                            <option value="7 days">7 days</option>
+                            <option value="14 days">14 days</option>
+                            <option value="30 days">30 days</option>
+                        </select>
+                    </div>
+
+                    <div class="field full">
+                        <label for="invoiceNotes">Notes and payment instructions</label>
+                        <textarea id="invoiceNotes" rows="6">Please make payments to our business bank account:
+Bank: [Bank name]
+Name: [Account name]
+Account Number: [Account number]
+Branch Code: [Branch code]
+Account Type: [Account type]
+
+Thank you for your patronage!</textarea>
+                    </div>
+                </div>
+
+                <div class="invoice-items-heading">
+                    <div>
+                        <h2>Line items</h2>
+                        <p>Add each product or service billed on this invoice.</p>
+                    </div>
+                    <button class="secondary-button" id="addInvoiceItem" type="button">+ Add item</button>
+                </div>
+
+                <div class="invoice-item-list" id="invoiceItems">
+                    <div class="invoice-item-row">
+                        <div class="field invoice-item-description">
+                            <label>Description</label>
+                            <input class="item-description" type="text" required>
+                        </div>
+                        <div class="field invoice-item-quantity">
+                            <label>Quantity</label>
+                            <input class="item-quantity" type="number" min="0.01" step="0.01" value="1" required>
+                        </div>
+                        <div class="field invoice-item-rate">
+                            <label>Unit price (R)</label>
+                            <input class="item-rate" type="number" min="0" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="invoice-item-total">
+                            <span>Line total</span>
+                            <strong class="item-line-total">R0.00</strong>
+                        </div>
+                        <button class="remove-invoice-item" type="button" aria-label="Remove this invoice item" disabled>×</button>
+                    </div>
+                </div>
+
+                <div class="invoice-bottom-row">
+                    <label class="invoice-vat-option">
+                        <input id="invoiceVat" type="checkbox">
+                        <span>Add 15% VAT</span>
+                    </label>
+
+                    <div class="invoice-totals" aria-live="polite">
+                        <div><span>Subtotal</span><strong id="invoiceSubtotal">R0.00</strong></div>
+                        <div id="invoiceVatRow" hidden><span>VAT (15%)</span><strong id="invoiceVatAmount">R0.00</strong></div>
+                        <div class="invoice-grand-total"><span>Total due</span><strong id="invoiceTotal">R0.00</strong></div>
+                    </div>
+                </div>
+
+                <div class="invoice-form-actions">
+                    <button class="primary-button" type="submit">Create invoice</button>
+                    <button class="secondary-button" id="cancelInvoiceForm" type="button">Cancel</button>
+                    <p id="invoiceFormMessage" class="auth-form-message" aria-live="polite"></p>
+                </div>
+            </form>
+        </section>
+
+        <section class="invoice-print-preview" id="invoicePrintPreview" hidden aria-live="polite">
+            <div class="invoice-preview-actions">
+                <a class="primary-button" id="downloadInvoicePdf" href="#" download>Download PDF</a>
+            </div>
+            <iframe id="invoicePdfViewer" title="Invoice PDF preview"></iframe>
+        </section>
+    </main>
+
+    <template id="invoiceItemTemplate">
+        <div class="invoice-item-row">
+            <div class="field invoice-item-description">
+                <label>Description</label>
+                <input class="item-description" type="text" required>
+            </div>
+            <div class="field invoice-item-quantity">
+                <label>Quantity</label>
+                <input class="item-quantity" type="number" min="0.01" step="0.01" value="1" required>
+            </div>
+            <div class="field invoice-item-rate">
+                <label>Unit price (R)</label>
+                <input class="item-rate" type="number" min="0" step="0.01" placeholder="0.00" required>
+            </div>
+            <div class="invoice-item-total">
+                <span>Line total</span>
+                <strong class="item-line-total">R0.00</strong>
+            </div>
+            <button class="remove-invoice-item" type="button" aria-label="Remove this invoice item">×</button>
+        </div>
+    </template>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/invoices.js"></script>
+</body>
+</html>

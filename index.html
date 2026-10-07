@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Sign In — Zyma Pay</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-page">
+    <main class="auth-page-shell">
+        <div class="auth-brand" aria-label="Zyma Pay">
+            <span class="brand-mark"><img src="images/5.png" alt="Zyma Systems logo"></span>
+            <span class="brand-copy">
+                <strong>ZYMA</strong>
+                <small>PAYMENTS</small>
+            </span>
+        </div>
+
+        <section class="form-panel auth-panel">
+            <div class="page-heading compact">
+                <div>
+                    <span class="eyebrow">STAFF ACCESS</span>
+                    <h1>Sign in</h1>
+                    <p>Sign in with the Zyma staff account created from your super admin invitation.</p>
+                </div>
+            </div>
+
+            <div class="auth-prototype-notice" role="status">
+                <strong>Zyma staff access only</strong>
+                <p>
+                    Staff accounts are created by a Zyma super admin invitation. Self-registration
+                    is not available. Sign-in and dashboard access will be enforced when the
+                    authentication backend is connected.
+                </p>
+            </div>
+
+            <form id="loginForm">
+                <div class="field">
+                    <label for="loginEmail">Work email</label>
+                    <input type="email" id="loginEmail" autocomplete="username" required>
+                </div>
+
+                <div class="field">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" autocomplete="current-password" required>
+                </div>
+
+                <button class="primary-button auth-submit" type="submit">Sign in</button>
+                <p class="auth-form-message" id="loginMessage" aria-live="polite"></p>
+            </form>
+        </section>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

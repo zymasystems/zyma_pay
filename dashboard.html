@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Zyma Pay — Payment Operations</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- =====================================================
+         APPLICATION SHELL
+    ====================================================== -->
+
+    <div class="app">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <div class="brand">
+                <div class="brand-mark">
+                    <img src="images/5.png" alt="Zyma Systems logo">
+                </div>
+
+                <div class="brand-copy">
+                    <strong>ZYMA</strong>
+                    <span>PAYMENTS</span>
+                </div>
+            </div>
+
+
+            <div class="sidebar-section">
+
+                <span class="sidebar-label">
+                    OPERATIONS
+                </span>
+
+                <nav class="navigation">
+
+                    <button class="nav-item active" data-page="dashboard">
+                        <span class="nav-icon">⌂</span>
+                        <span>Overview</span>
+                    </button>
+
+                    <button class="nav-item" data-page="payments">
+                        <span class="nav-icon">↗</span>
+                        <span>Payments</span>
+                    </button>
+
+                    <a class="nav-item" href="invoices.html">
+                        <span class="nav-icon">▤</span>
+                        <span>Invoices</span>
+                    </a>
+
+                    <a class="nav-item" href="sales-receipts.html">
+                        <span class="nav-icon">▧</span>
+                        <span>Sales Receipts</span>
+                    </a>
+
+                    <button class="nav-item" data-page="new-payment">
+                        <span class="nav-icon">+</span>
+                        <span>New Payment</span>
+                    </button>
+
+                </nav>
+
+            </div>
+
+
+            <div class="sidebar-section">
+
+                <span class="sidebar-label">
+                    SYSTEM
+                </span>
+
+                <nav class="navigation">
+
+                    <a class="nav-item" href="templates.html">
+                        <span class="nav-icon">□</span>
+                        <span>Email Templates</span>
+                    </a>
+
+                    <a class="nav-item" href="activity.html">
+                        <span class="nav-icon">◷</span>
+                        <span>Activity</span>
+                    </a>
+
+                    <a class="nav-item" href="settings.html">
+                        <span class="nav-icon">⚙</span>
+                        <span>Settings</span>
+                    </a>
+
+                    <a class="nav-item" href="staff-access.html" data-super-admin-only>
+                        <span class="nav-icon">●</span>
+                        <span>Staff Access</span>
+                    </a>
+
+                </nav>
+
+            </div>
+
+
+            <div class="sidebar-bottom">
+
+                <div class="system-status">
+                    <span class="status-dot"></span>
+
+                    <div>
+                        <strong>System Online</strong>
+                        <small>All systems nominal</small>
+                    </div>
+                </div>
+
+                <div class="user-profile">
+
+                    <div class="avatar" aria-hidden="true">
+                        ZP
+                    </div>
+
+                    <div class="user-details">
+                        <strong id="currentUserName">Staff Member</strong>
+                        <span id="currentUserRole">Staff</span>
+                    </div>
+
+                    <button class="more-button">•••</button>
+
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- MAIN -->
+        <main class="main">
+
+            <!-- TOP BAR -->
+            <header class="topbar">
+
+                <div class="breadcrumb">
+                    <span>Zyma Pay</span>
+                    <span>/</span>
+                    <strong id="pageTitle">Overview</strong>
+                </div>
+
+                <div class="topbar-actions">
+
+                    <button class="icon-button" title="Notifications">
+                        ♧
+                        <span class="notification-dot"></span>
+                    </button>
+
+                    <button class="primary-button" id="topNewPayment">
+                        <span>+</span>
+                        New Payment
+                    </button>
+
+                </div>
+
+            </header>
+
+
+            <!-- PAGE CONTENT -->
+            <div class="content">
+
+
+                <!-- =================================================
+                     DASHBOARD
+                ================================================== -->
+
+                <section class="page active-page" id="dashboard">
+
+                    <div class="page-heading">
+
+                        <div>
+                            <span class="eyebrow">
+                                ZYMA PAY · PAYMENT OPERATIONS
+                            </span>
+
+                            <h1 id="dashboardGreeting">
+                                Welcome to Zyma Pay.
+                            </h1>
+
+                            <p>
+                                Monitor payments, verify transactions,
+                                and manage client communications.
+                            </p>
+                        </div>
+
+                        <div class="date-display" id="currentDateDisplay" aria-label="Current date">
+                            <span id="currentDateDay">—</span>
+                            <div>
+                                <strong id="currentDateMonth">—</strong>
+                                <small id="currentDateYear">—</small>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <!-- METRICS -->
+                    <div class="metrics">
+
+                        <div class="metric-card">
+
+                            <div class="metric-top">
+                                <span>Total Payments</span>
+                                <span class="metric-icon">↗</span>
+                            </div>
+
+                            <strong class="metric-value" id="metricTotalPayments">0</strong>
+
+                            <span class="metric-change">
+                                No records yet
+                            </span>
+
+                        </div>
+
+
+                        <div class="metric-card warning-card">
+
+                            <div class="metric-top">
+                                <span>Awaiting Reflection</span>
+                                <span class="metric-icon">◷</span>
+                            </div>
+
+                            <strong class="metric-value" id="metricAwaitingReflection">0</strong>
+
+                            <span class="metric-change">
+                                Requires verification
+                            </span>
+
+                        </div>
+
+
+                        <div class="metric-card">
+
+                            <div class="metric-top">
+                                <span>Payments Confirmed</span>
+                                <span class="metric-icon">✓</span>
+                            </div>
+
+                            <strong class="metric-value" id="metricPaymentsConfirmed">0</strong>
+
+                            <span class="metric-change">
+                                No records yet
+                            </span>
+
+                        </div>
+
+
+                        <div class="metric-card amount-card">
+
+                            <div class="metric-top">
+                                <span>Received This Month</span>
+                                <span class="metric-icon">R</span>
+                            </div>
+
+                            <strong class="metric-value" id="metricReceivedThisMonth">
+                                R0.00
+                            </strong>
+
+                            <span class="metric-change">
+                                Current month
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- DASHBOARD GRID -->
+                    <div class="dashboard-grid">
+
+                        <!-- RECENT PAYMENTS -->
+                        <div class="panel payments-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+                                    <span class="eyebrow">
+                                        ACTIVITY
+                                    </span>
+
+                                    <h2>
+                                        Recent Payments
+                                    </h2>
+                                </div>
+
+                                <button
+                                    class="text-button"
+                                    data-page-target="payments">
+                                    View all →
+                                </button>
+
+                            </div>
+
+
+                            <div class="payment-table" id="recentPaymentsRows">
+
+                                <div class="table-head">
+                                    <span>CLIENT</span>
+                                    <span>INVOICE</span>
+                                    <span>AMOUNT</span>
+                                    <span>STATUS</span>
+                                </div>
+
+
+                                <div class="payment-empty-state" data-payment-empty="recent">
+                                    <strong>No payments yet</strong>
+                                    <span>Payments will appear here once they are recorded.</span>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- QUICK ACTION -->
+                        <div class="panel quick-panel">
+
+                            <span class="eyebrow">
+                                QUICK ACTION
+                            </span>
+
+                            <h2>
+                                Record a payment
+                            </h2>
+
+                            <p>
+                                Create a payment record, attach
+                                supporting documents and prepare
+                                the client email.
+                            </p>
+
+                            <button class="large-action" id="dashboardNewPayment">
+
+                                <span class="action-icon">
+                                    +
+                                </span>
+
+                                <span>
+                                    <strong>
+                                        New Payment
+                                    </strong>
+
+                                    <small>
+                                        Start a new transaction
+                                    </small>
+                                </span>
+
+                                <span class="arrow">
+                                    →
+                                </span>
+
+                            </button>
+
+
+                            <div class="quick-divider"></div>
+
+
+                            <div class="quick-info">
+
+                                <span class="info-icon">
+                                    i
+                                </span>
+
+                                <p>
+                                    Payments are recorded first
+                                    and confirmed once funds have
+                                    reflected in the Zyma account.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     PAYMENTS
+                ================================================== -->
+
+                <section class="page" id="payments">
+
+                    <div class="page-heading compact">
+
+                        <div>
+                            <span class="eyebrow">
+                                TRANSACTION MANAGEMENT
+                            </span>
+
+                            <h1>
+                                Payments
+                            </h1>
+
+                            <p>
+                                All payment records and transaction history.
+                            </p>
+                        </div>
+
+                        <button class="primary-button" id="paymentsNewPayment">
+                            + New Payment
+                        </button>
+
+                    </div>
+
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+                            <span>⌕</span>
+
+                            <input
+                                type="search"
+                                id="paymentSearch"
+                                placeholder="Search client, invoice or receipt..."
+                            >
+                        </div>
+
+                        <select id="statusFilter">
+                            <option value="all">All statuses</option>
+                            <option value="paid">Payment Received</option>
+                            <option value="awaiting">Awaiting Reflection</option>
+                        </select>
+
+                        <select id="paymentTypeFilter">
+                            <option value="all">All payment types</option>
+                            <option>Bank transfer (EFT)</option>
+                            <option>Debit card</option>
+                            <option>Credit card</option>
+                            <option>Cash</option>
+                            <option>Other</option>
+                        </select>
+
+                    </div>
+
+
+                    <div class="panel full-panel">
+
+                        <div class="payment-table large-table" id="paymentsRows">
+
+                            <div class="table-head">
+                                <span>CLIENT</span>
+                                <span>INVOICE</span>
+                                <span>RECEIPT</span>
+                                <span>AMOUNT</span>
+                                <span>TYPE</span>
+                                <span>STATUS</span>
+                            </div>
+
+
+                            <div class="payment-empty-state" data-payment-empty="all">
+                                <strong>No payments yet</strong>
+                                <span>There are no payment records to display.</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     NEW PAYMENT
+                ================================================== -->
+
+                <section class="page" id="new-payment">
+
+                    <div class="page-heading compact">
+
+                        <div>
+                            <span class="eyebrow">
+                                PAYMENT OPERATIONS
+                            </span>
+
+                            <h1>
+                                New Payment
+                            </h1>
+
+                            <p>
+                                Record a payment and prepare the client
+                                communication.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <form id="paymentForm">
+
+                        <div class="form-layout">
+
+                            <!-- LEFT -->
+                            <div>
+
+                                <div class="form-panel">
+
+                                    <div class="form-panel-heading">
+                                        <span class="step-number">01</span>
+
+                                        <div>
+                                            <h2>
+                                                Client Information
+                                            </h2>
+
+                                            <p>
+                                                Who is this payment from?
+                                            </p>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="form-grid">
+
+                                        <div class="field full">
+                                            <label>
+                                                Company / Client Name
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                id="clientName"
+                                                placeholder="Client / company name"
+                                                required
+                                            >
+                                        </div>
+
+
+                                        <div class="field full">
+                                            <label>
+                                                Client Email Address
+                                            </label>
+
+                                            <input
+                                                type="email"
+                                                id="clientEmail"
+                                                placeholder="Client email address"
+                                                required
+                                            >
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="form-panel">
+
+                                    <div class="form-panel-heading">
+                                        <span class="step-number">02</span>
+
+                                        <div>
+                                            <h2>
+                                                Payment Information
+                                            </h2>
+
+                                            <p>
+                                                Enter the transaction details.
+                                            </p>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="form-grid">
+
+                                        <div class="field">
+                                            <label>
+                                                Invoice Number
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                id="invoiceNumber"
+                                                placeholder="Invoice number"
+                                                required
+                                            >
+                                        </div>
+
+
+                                        <div class="field">
+                                            <label>
+                                                Sales Receipt Number
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                id="receiptNumber"
+                                                placeholder="Sales receipt number"
+                                            >
+                                        </div>
+
+
+                                        <div class="field">
+                                            <label>
+                                                Amount
+                                            </label>
+
+                                            <div class="amount-input">
+                                                <span>R</span>
+
+                                                <input
+                                                    type="number"
+                                                    id="amount"
+                                                    placeholder="0.00"
+                                                    step="0.01"
+                                                    min="0"
+                                                    required
+                                                >
+                                            </div>
+                                        </div>
+
+
+                                        <div class="field">
+                                            <label>
+                                                Payment Type
+                                            </label>
+
+                                            <select id="paymentType">
+
+                                                <option>
+                                                    Bank transfer (EFT)
+                                                </option>
+
+                                                <option>
+                                                    Debit card
+                                                </option>
+
+                                                <option>
+                                                    Credit card
+                                                </option>
+
+                                                <option>
+                                                    Cash
+                                                </option>
+
+                                                <option>
+                                                    Other
+                                                </option>
+
+                                            </select>
+                                        </div>
+
+
+                                        <div class="field">
+                                            <label>
+                                                Payment Date
+                                            </label>
+
+                                            <input
+                                                type="date"
+                                                id="paymentDate"
+                                            >
+                                        </div>
+
+
+                                        <div class="field">
+                                            <label>
+                                                Payment Status
+                                            </label>
+
+                                            <select id="paymentStatus">
+
+                                                <option value="awaiting">
+                                                    Awaiting Reflection
+                                                </option>
+
+                                                <option value="paid">
+                                                    Payment Received
+                                                </option>
+
+                                            </select>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="form-panel">
+
+                                    <div class="form-panel-heading">
+                                        <span class="step-number">03</span>
+
+                                        <div>
+                                            <h2>
+                                                Supporting Documents
+                                            </h2>
+
+                                            <p>
+                                                Attach the relevant payment documents.
+                                            </p>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="upload-grid">
+
+                                        <label class="upload-box">
+
+                                            <input
+                                                type="file"
+                                                id="proofFile"
+                                                accept=".pdf,.png,.jpg,.jpeg"
+                                            >
+
+                                            <span class="upload-icon">
+                                                ↑
+                                            </span>
+
+                                            <strong>
+                                                Proof of Payment
+                                            </strong>
+
+                                            <small>
+                                                PDF, PNG or JPG
+                                            </small>
+
+                                            <span class="file-name"
+                                                  id="proofFileName">
+                                            </span>
+
+                                        </label>
+
+
+                                        <label class="upload-box">
+
+                                            <input
+                                                type="file"
+                                                id="invoiceFile"
+                                                accept=".pdf,.png,.jpg,.jpeg"
+                                            >
+
+                                            <span class="upload-icon">
+                                                ↑
+                                            </span>
+
+                                            <strong>
+                                                Invoice
+                                            </strong>
+
+                                            <small>
+                                                PDF, PNG or JPG
+                                            </small>
+
+                                            <span class="file-name"
+                                                  id="invoiceFileName">
+                                            </span>
+
+                                        </label>
+
+
+                                        <label class="upload-box">
+
+                                            <input
+                                                type="file"
+                                                id="receiptFile"
+                                                accept=".pdf,.png,.jpg,.jpeg"
+                                            >
+
+                                            <span class="upload-icon">
+                                                ↑
+                                            </span>
+
+                                            <strong>
+                                                Sales Receipt
+                                            </strong>
+
+                                            <small>
+                                                PDF, PNG or JPG
+                                            </small>
+
+                                            <span class="file-name"
+                                                  id="receiptFileName">
+                                            </span>
+
+                                        </label>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- RIGHT PREVIEW -->
+                            <aside class="email-preview-panel">
+
+                                <div class="preview-header">
+
+                                    <div>
+                                        <span class="eyebrow">
+                                            LIVE PREVIEW
+                                        </span>
+
+                                        <h2>
+                                            Client Email
+                                        </h2>
+                                    </div>
+
+                                    <span class="preview-live">
+                                        ● LIVE
+                                    </span>
+
+                                </div>
+
+
+                                <div class="email-meta">
+
+                                    <div>
+                                        <span>FROM</span>
+                                        <strong>
+                                            payments@zyma.co.za
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>TO</span>
+                                        <strong id="previewEmail">
+                                            Client email
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>SUBJECT</span>
+                                        <strong id="previewSubject">
+                                            Proof of Payment Received
+                                        </strong>
+                                    </div>
+
+                                </div>
+
+
+                                <div class="email-window">
+
+                                    <div class="email-window-header">
+
+                                        <strong>
+                                            ZYMA SYSTEMS
+                                        </strong>
+
+                                        <span>
+                                            PAYMENTS
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="email-body">
+
+                                        <span class="email-eyebrow"
+                                              id="previewEyebrow">
+                                            PROOF OF PAYMENT RECEIVED
+                                        </span>
+
+                                        <h3 id="previewHeading">
+                                            We've received your
+                                            proof of payment.
+                                        </h3>
+
+                                        <p id="previewIntro">
+                                            Thank you for sending your
+                                            proof of payment. We have
+                                            received the document and
+                                            will verify the transaction.
+                                        </p>
+
+
+                                        <div class="email-amount">
+
+                                            <span>
+                                                AMOUNT
+                                            </span>
+
+                                            <strong id="previewAmount">
+                                                R0.00
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div class="email-details">
+
+                                            <div>
+                                                <span>INVOICE</span>
+                                                <strong id="previewInvoice">
+                                                    —
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span>PAYMENT TYPE</span>
+                                                <strong id="previewPaymentType">
+                                                    Bank transfer (EFT)
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span>STATUS</span>
+                                                <strong id="previewStatus">
+                                                    Awaiting Verification
+                                                </strong>
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="email-notice"
+                                             id="previewNotice">
+
+                                            <strong>
+                                                AWAITING BANK VERIFICATION
+                                            </strong>
+
+                                            <p>
+                                                The proof of payment has
+                                                been received, but the
+                                                payment has not yet been
+                                                confirmed.
+                                            </p>
+
+                                        </div>
+
+
+                                        <p class="email-closing">
+                                            Kind regards,<br>
+                                            <strong>Zyma Systems</strong><br>
+                                            payments@zyma.co.za
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="preview-actions">
+
+                                    <button
+                                        type="button"
+                                        class="secondary-button"
+                                        id="saveDraft">
+                                        Save Draft
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        form="paymentForm"
+                                        class="primary-button">
+                                        Continue
+                                        <span>→</span>
+                                    </button>
+
+                                </div>
+
+                            </aside>
+
+                        </div>
+
+                    </form>
+
+                </section>
+
+
+           </div>
+
+        </main>
+
+    </div>
+
+
+    <!-- TOAST -->
+    <div class="toast" id="toast">
+        <span class="toast-icon">✓</span>
+        <div>
+            <strong id="toastTitle">Saved</strong>
+            <small id="toastMessage">Payment saved successfully.</small>
+        </div>
+    </div>
+
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>
