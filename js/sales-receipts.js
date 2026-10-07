@@ -1,4 +1,6 @@
 const receiptStorageKey = "zymaSalesReceipts";
+const receiptApiEnabled = Boolean(window.ZYMA_PAY_CONFIG?.API_ENABLED && window.zymaApi?.isEnabled());
+let receiptCache = [];
 const receiptForm = document.getElementById("receiptForm");
 const receiptItems = document.getElementById("receiptItems");
 const savedReceipts = document.getElementById("savedReceipts");
@@ -171,28 +173,67 @@ function bindReceiptItem(row) {
     });
 }
 
-function readReceipts() {
-    let stored;
-    try {
-        stored = localStorage.getItem(receiptStorageKey);
-    } catch (error) {
-        console.error("Unable to read sales receipts.", error);
-        receiptRegisterMessage.textContent =
-            "Saved receipts are unavailable because browser storage could not be read.";
-        return [];
-    }
-    if (!stored) return [];
+function normalizeReceipt(receipt) {
+    let items = [];
+    try { items = receipt.itemsJson ? JSON.parse(receipt.itemsJson) : (receipt.items || []); } catch { items = []; }
+    return {
+        ...receipt,
+        id: receipt.id || receipt.Id,
+        number: receipt.receiptNumber ?? receipt.number ?? "",
+        client: receipt.clientName ?? receipt.client ?? "",
+        email: receipt.clientEmail ?? receipt.email ?? "",
+        date: receipt.receiptDate ?? receipt.date ?? "",
+        reference: receipt.reference ?? "",
+        paymentMode: receipt.paymentMode ?? receipt.payment_mode ?? "Bank Transfer",
+        notes: receipt.notes || defaultReceiptNotes,
+        items,
+        total: Number(receipt.amount ?? receipt.total ?? 0) || 0
+    };
+}
 
+function receiptToApiPayload(receipt) {
+    return {
+        receiptNumber: receipt.number,
+        clientName: receipt.client,
+        clientEmail: receipt.email || "",
+        reference: receipt.reference || null,
+        paymentMode: receipt.paymentMode || null,
+        notes: receipt.notes || null,
+        itemsJson: JSON.stringify(receipt.items || []),
+        amount: Number(receipt.total) || 0,
+        receiptDate: receipt.date
+    };
+}
+
+function readReceipts() {
+    if (receiptApiEnabled) return receiptCache.slice();
     try {
+        const stored = localStorage.getItem(receiptStorageKey);
+        if (!stored) return [];
         const receipts = JSON.parse(stored);
-        if (!Array.isArray(receipts)) {
-            throw new Error("Saved receipt data is not a list.");
-        }
-        return receipts;
+        if (!Array.isArray(receipts)) throw new Error("Saved receipt data is not a list.");
+        return receipts.map(normalizeReceipt);
     } catch (error) {
         console.error("Unable to restore sales receipts.", error);
-        receiptRegisterMessage.textContent =
-            "Saved receipt data could not be read. Create a new receipt to continue.";
+        receiptRegisterMessage.textContent = "Saved receipts could not be read.";
+        return [];
+    }
+}
+
+async function loadReceiptsFromApi() {
+    if (!receiptApiEnabled) return readReceipts();
+    try {
+        const response = await window.zymaApi.listReceipts();
+        const items = Array.isArray(response) ? response : response?.items || [];
+        receiptCache = items.map(normalizeReceipt);
+        renderReceipts(receiptCache);
+        const numberInput = document.getElementById("receiptNumber");
+        if (numberInput && !numberInput.value) numberInput.value = nextReceiptNumber(receiptCache, new Date().getFullYear());
+        return receiptCache.slice();
+    } catch (error) {
+        console.error("Unable to load sales receipts from API.", error);
+        receiptRegisterMessage.textContent = error.message || "Sales receipts could not be loaded from the server.";
+        renderReceipts([]);
         return [];
     }
 }
@@ -292,7 +333,7 @@ function renderReceipts(receipts) {
             "aria-label",
             `Delete sales receipt ${receipt.number}`
         );
-        deleteButton.addEventListener("click", () => deleteReceipt(receipt.number));
+        deleteButton.addEventListener("click", () => deleteReceipt(receipt.id || receipt.number));
 
         details.append(number, paymentMode);
         actions.append(previewButton, downloadButton, deleteButton);
@@ -679,35 +720,24 @@ async function downloadReceipt(receipt) {
     }
 }
 
-function deleteReceipt(number) {
-    if (!window.confirm(`Delete sales receipt ${number}? This cannot be undone.`)) {
-        return;
-    }
-    const receipts = readReceipts();
-    const remaining = receipts.filter(receipt => receipt.number !== number);
-    if (remaining.length === receipts.length) {
-        receiptRegisterMessage.textContent =
-            `Sales receipt ${number} was not found. Refresh the list and try again.`;
-        return;
-    }
-    try {
+async function deleteReceipt(idOrNumber) {
+    if (!window.confirm("Delete this sales receipt? This cannot be undone.")) return;
+    if (!receiptApiEnabled) {
+        const remaining = readReceipts().filter(receipt => receipt.number !== idOrNumber);
         localStorage.setItem(receiptStorageKey, JSON.stringify(remaining));
-    } catch (error) {
-        console.error("Unable to save sales receipts after deletion.", error);
-        receiptRegisterMessage.textContent =
-            `Sales receipt ${number} could not be deleted from browser storage.`;
+        renderReceipts(remaining);
         return;
     }
-    if (currentPreviewReceiptNumber === number) {
-        receiptPdfViewer.removeAttribute("src");
-        downloadReceiptPdf.removeAttribute("href");
-        receiptPreview.hidden = true;
-        if (currentReceiptPdfUrl) URL.revokeObjectURL(currentReceiptPdfUrl);
-        currentReceiptPdfUrl = "";
-        currentPreviewReceiptNumber = "";
+    const receipt = receiptCache.find(item => item.id === idOrNumber || item.number === idOrNumber);
+    if (!receipt) return;
+    try {
+        await window.zymaApi.deleteReceipt(receipt.id);
+        await loadReceiptsFromApi();
+        window.dispatchEvent(new CustomEvent("zyma:billing-updated"));
+        receiptRegisterMessage.textContent = `${receipt.number} was deleted.`;
+    } catch (error) {
+        receiptRegisterMessage.textContent = error.message || "Sales receipt could not be deleted.";
     }
-    renderReceipts(remaining);
-    receiptRegisterMessage.textContent = `Sales receipt ${number} was deleted.`;
 }
 
 document.getElementById("showReceiptForm").addEventListener("click", () => {
@@ -742,12 +772,12 @@ receiptItems.querySelectorAll(".invoice-item-row").forEach(bindReceiptItem);
 setDefaultReceiptDate();
 
 const initialReceipts = readReceipts();
-document.getElementById("receiptNumber").value =
-    nextReceiptNumber(initialReceipts, new Date().getFullYear());
+document.getElementById("receiptNumber").value = nextReceiptNumber(initialReceipts, new Date().getFullYear());
 renderReceipts(initialReceipts);
 updateReceiptTotals();
+if (receiptApiEnabled) loadReceiptsFromApi();
 
-receiptForm.addEventListener("submit", event => {
+receiptForm.addEventListener("submit", async event => {
     event.preventDefault();
     receiptFormMessage.textContent = "";
     if (!receiptForm.checkValidity()) {
@@ -786,28 +816,32 @@ receiptForm.addEventListener("submit", event => {
     };
 
     if (receipts.some(saved => saved.number === receipt.number)) {
-        receiptFormMessage.textContent =
-            "That sales receipt number already exists. Refresh the page to generate the next number.";
+        receiptFormMessage.textContent = "That sales receipt number already exists.";
         return;
     }
-    receipts.push(receipt);
     try {
-        localStorage.setItem(receiptStorageKey, JSON.stringify(receipts));
+        if (receiptApiEnabled) {
+            const saved = normalizeReceipt(await window.zymaApi.createReceipt(receiptToApiPayload(receipt)));
+            receiptCache.unshift(saved);
+            renderReceipts(receiptCache);
+            receiptRegisterMessage.textContent = `${saved.number} created and shared with staff.`;
+            document.getElementById("receiptNumber").value = nextReceiptNumber(receiptCache, new Date().getFullYear());
+            window.dispatchEvent(new CustomEvent("zyma:billing-updated"));
+        } else {
+            receipts.push(receipt);
+            localStorage.setItem(receiptStorageKey, JSON.stringify(receipts));
+            renderReceipts(receipts);
+            receiptRegisterMessage.textContent = `${receipt.number} created.`;
+            document.getElementById("receiptNumber").value = nextReceiptNumber(receipts, new Date().getFullYear());
+        }
     } catch (error) {
-        console.error("Unable to save sales receipt.", error);
-        receiptFormMessage.textContent =
-            "Sales receipt could not be saved in this browser. Check available storage and try again.";
+        receiptFormMessage.textContent = error.message || "Sales receipt could not be saved.";
         return;
     }
 
-    renderReceipts(receipts);
     receiptFormPanel.hidden = true;
-    receiptRegisterMessage.textContent =
-        `${receipt.number} created. Preview or download its PDF from the sales receipt register.`;
     receiptForm.reset();
     document.getElementById("receiptNotes").value = defaultReceiptNotes;
-    document.getElementById("receiptNumber").value =
-        nextReceiptNumber(receipts, new Date().getFullYear());
     receiptItems.replaceChildren(
         document.getElementById("receiptItemTemplate").content
             .firstElementChild.cloneNode(true)
@@ -816,3 +850,10 @@ receiptForm.addEventListener("submit", event => {
     setDefaultReceiptDate();
     updateReceiptTotals();
 });
+
+if (receiptApiEnabled) {
+    window.addEventListener("pageshow", () => loadReceiptsFromApi());
+    window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") loadReceiptsFromApi();
+    });
+}

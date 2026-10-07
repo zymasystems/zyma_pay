@@ -325,6 +325,189 @@ async function loadPaymentsFromApi() {
     }
 }
 
+
+function normalizeDashboardInvoice(invoice) {
+    const status = String(invoice?.status ?? "Draft").toLowerCase();
+    return {
+        id: invoice?.id,
+        number: invoice?.invoiceNumber ?? invoice?.number ?? "",
+        client: invoice?.clientName ?? invoice?.client ?? "",
+        email: invoice?.clientEmail ?? invoice?.email ?? "",
+        amount: Number(invoice?.amount ?? invoice?.total ?? 0) || 0,
+        dueDate: invoice?.dueDate ?? "",
+        status: status === "unpaid" || status === "awaiting payment" || status === "awaiting_payment" ? "sent" : status
+    };
+}
+
+function normalizeDashboardReceipt(receipt) {
+    return {
+        id: receipt?.id,
+        number: receipt?.receiptNumber ?? receipt?.number ?? "",
+        client: receipt?.clientName ?? receipt?.client ?? "",
+        amount: Number(receipt?.amount ?? receipt?.total ?? 0) || 0,
+        date: receipt?.receiptDate ?? receipt?.date ?? ""
+    };
+}
+
+function renderReadyInvoices(invoices) {
+    const container = document.getElementById("readyInvoicesRows");
+    if (!container) return;
+    container.replaceChildren();
+    const ready = invoices
+        .map(normalizeDashboardInvoice)
+        .filter(invoice => invoice.status === "sent")
+        .slice(0, 6);
+    if (!ready.length) {
+        const empty = document.createElement("div");
+        empty.className = "billing-list-empty";
+        empty.textContent = "No invoices are currently awaiting payment.";
+        container.append(empty);
+        return;
+    }
+    ready.forEach(invoice => {
+        const row = document.createElement("div");
+        row.className = "billing-action-row";
+        const main = document.createElement("div");
+        main.className = "billing-action-main";
+        const name = document.createElement("strong");
+        name.textContent = invoice.client;
+        const ref = document.createElement("small");
+        ref.textContent = `${invoice.number}${invoice.dueDate ? ` · Due ${formatApiDate(invoice.dueDate)}` : ""}`;
+        main.append(name, ref);
+        const amount = document.createElement("span");
+        amount.className = "billing-action-amount";
+        amount.textContent = formatCurrency(invoice.amount);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "billing-action-button";
+        button.textContent = "Record Payment";
+        button.addEventListener("click", () => openPaymentForInvoice(invoice));
+        row.append(main, amount, button);
+        container.append(row);
+    });
+}
+
+function renderRecentReceipts(receipts) {
+    const container = document.getElementById("recentReceiptsRows");
+    if (!container) return;
+    container.replaceChildren();
+    const recent = receipts.map(normalizeDashboardReceipt).slice(0, 6);
+    if (!recent.length) {
+        const empty = document.createElement("div");
+        empty.className = "billing-list-empty";
+        empty.textContent = "No sales receipts yet.";
+        container.append(empty);
+        return;
+    }
+    recent.forEach(receipt => {
+        const row = document.createElement("div");
+        row.className = "billing-action-row";
+        const main = document.createElement("div");
+        main.className = "billing-action-main";
+        const name = document.createElement("strong");
+        name.textContent = receipt.client;
+        const ref = document.createElement("small");
+        ref.textContent = `${receipt.number}${receipt.date ? ` · ${formatApiDate(receipt.date)}` : ""}`;
+        main.append(name, ref);
+        const amount = document.createElement("span");
+        amount.className = "billing-action-amount";
+        amount.textContent = formatCurrency(receipt.amount);
+        row.append(main, amount);
+        container.append(row);
+    });
+}
+
+
+async function migrateLegacyBillingData() {
+    if (!isApiModeEnabled()) return;
+    const migrationKey = "zymaBillingServerMigrationV1";
+    if (localStorage.getItem(migrationKey) === "done") return;
+
+    try {
+        const [serverInvoicesRaw, serverReceiptsRaw] = await Promise.all([
+            window.zymaApi.listInvoices(),
+            window.zymaApi.listReceipts()
+        ]);
+        const serverInvoices = Array.isArray(serverInvoicesRaw) ? serverInvoicesRaw : serverInvoicesRaw?.items || [];
+        const serverReceipts = Array.isArray(serverReceiptsRaw) ? serverReceiptsRaw : serverReceiptsRaw?.items || [];
+        const invoiceNumbers = new Set(serverInvoices.map(x => x.invoiceNumber ?? x.number));
+        const receiptNumbers = new Set(serverReceipts.map(x => x.receiptNumber ?? x.number));
+
+        const legacyInvoices = JSON.parse(localStorage.getItem("zymaInvoices") || "[]");
+        if (Array.isArray(legacyInvoices)) {
+            for (const legacy of legacyInvoices) {
+                const number = legacy.number || legacy.invoiceNumber;
+                if (!number || invoiceNumbers.has(number)) continue;
+                const status = String(legacy.status || "draft").toLowerCase();
+                await window.zymaApi.createInvoice({
+                    invoiceNumber: number,
+                    clientName: legacy.client || legacy.clientName || "",
+                    clientEmail: legacy.email || legacy.clientEmail || "",
+                    amount: Number(legacy.total ?? legacy.amount ?? 0),
+                    subtotal: Number(legacy.subtotal ?? legacy.total ?? legacy.amount ?? 0),
+                    vatAmount: Number(legacy.vatAmount ?? 0),
+                    billingAddress: legacy.billingAddress || null,
+                    terms: legacy.terms || "Due on Receipt",
+                    notes: legacy.notes || null,
+                    itemsJson: JSON.stringify(legacy.items || []),
+                    invoiceDate: legacy.issueDate || legacy.invoiceDate,
+                    dueDate: legacy.dueDate || null,
+                    status: status === "sent" ? "Sent" : "Draft"
+                });
+                invoiceNumbers.add(number);
+            }
+        }
+
+        const legacyReceipts = JSON.parse(localStorage.getItem("zymaSalesReceipts") || "[]");
+        if (Array.isArray(legacyReceipts)) {
+            for (const legacy of legacyReceipts) {
+                const number = legacy.number || legacy.receiptNumber;
+                if (!number || receiptNumbers.has(number)) continue;
+                await window.zymaApi.createReceipt({
+                    receiptNumber: number,
+                    clientName: legacy.client || legacy.clientName || "",
+                    clientEmail: legacy.email || legacy.clientEmail || "",
+                    reference: legacy.reference || null,
+                    paymentMode: legacy.paymentMode || "Bank Transfer",
+                    notes: legacy.notes || null,
+                    itemsJson: JSON.stringify(legacy.items || []),
+                    amount: Number(legacy.total ?? legacy.amount ?? 0),
+                    receiptDate: legacy.date || legacy.receiptDate
+                });
+                receiptNumbers.add(number);
+            }
+        }
+
+        localStorage.setItem(migrationKey, "done");
+    } catch (error) {
+        console.warn("Legacy billing migration was not completed.", error);
+    }
+}
+
+async function loadBillingDashboard() {
+    if (!isApiModeEnabled()) return;
+    try {
+        const [invoices, receipts] = await Promise.all([
+            window.zymaApi.listInvoices(),
+            window.zymaApi.listReceipts()
+        ]);
+        renderReadyInvoices(Array.isArray(invoices) ? invoices : invoices?.items || []);
+        renderRecentReceipts(Array.isArray(receipts) ? receipts : receipts?.items || []);
+    } catch (error) {
+        console.error("Unable to load billing dashboard data.", error);
+    }
+}
+
+function openPaymentForInvoice(invoice) {
+    if (typeof showPage === "function") showPage("new-payment");
+    if (clientName) clientName.value = invoice.client || "";
+    if (clientEmail) clientEmail.value = invoice.email || "";
+    if (invoiceNumber) invoiceNumber.value = invoice.number || "";
+    if (amount) amount.value = Number(invoice.amount || 0).toFixed(2);
+    if (paymentStatus) paymentStatus.value = "awaiting";
+    updatePreview?.();
+}
+
 async function loadCurrentUserFromApi() {
     if (!isApiModeEnabled()) return;
 
@@ -551,6 +734,9 @@ function showPage(pageId) {
 
     if (isApiModeEnabled() && (pageId === "dashboard" || pageId === "payments")) {
         loadPaymentsFromApi();
+    }
+    if (isApiModeEnabled() && pageId === "dashboard") {
+        loadBillingDashboard();
     }
 }
 
@@ -1458,10 +1644,42 @@ if (isApiModeEnabled()) {
     // the application starts so refresh/login never resets the visible data.
     loadCurrentUserFromApi();
     loadPaymentsFromApi();
+    awaitBillingMigrationAndRefresh();
 
     // Browser back/forward navigation can restore a page from the bfcache.
     // Rehydrate the payment state when that happens as well.
     window.addEventListener("pageshow", () => {
         loadPaymentsFromApi();
+        loadBillingDashboard();
+    });
+
+    window.addEventListener("zyma:billing-updated", () => {
+        loadBillingDashboard();
+        loadPaymentsFromApi();
     });
 }
+
+async function awaitBillingMigrationAndRefresh() {
+    await migrateLegacyBillingData();
+    await loadBillingDashboard();
+}
+
+// If an invoice page sends the user here, prefill the payment form from the
+// authoritative invoice record instead of asking staff to retype it.
+(async function hydratePaymentFromInvoiceQuery() {
+    if (!isApiModeEnabled() || !form) return;
+    const invoiceRef = new URLSearchParams(window.location.search).get("invoice");
+    if (!invoiceRef) return;
+    try {
+        const response = await window.zymaApi.listInvoices({ search: invoiceRef });
+        const invoices = Array.isArray(response) ? response : response?.items || [];
+        const invoice = invoices.find(item => (item.invoiceNumber ?? item.number) === invoiceRef);
+        if (!invoice) return;
+        const normalized = normalizeDashboardInvoice(invoice);
+        openPaymentForInvoice(normalized);
+        showPage("new-payment");
+        window.history.replaceState({}, document.title, "dashboard.html");
+    } catch (error) {
+        console.warn("Unable to prefill payment from invoice.", error);
+    }
+})();

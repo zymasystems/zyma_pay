@@ -4120,3 +4120,44 @@ body {
     flex: 0 0 auto;
     white-space: nowrap;
 }
+
+/* Shared billing operations */
+.billing-dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 22px;
+    margin-top: 22px;
+}
+.billing-list {
+    display: grid;
+    gap: 0;
+}
+.billing-list-empty {
+    padding: 28px 20px;
+    color: #777;
+    text-align: center;
+}
+.billing-action-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 18px;
+    align-items: center;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(0,0,0,.07);
+}
+.billing-action-row:first-child { border-top: 0; }
+.billing-action-main strong { display:block; }
+.billing-action-main small { display:block; margin-top:4px; color:#888; }
+.billing-action-amount { font-weight:700; white-space:nowrap; }
+.billing-action-status { font-size:12px; font-weight:700; padding:7px 10px; border-radius:999px; background:#fff3dc; color:#a75a00; white-space:nowrap; }
+.billing-action-status.paid { background:#e9f7ee; color:#18733d; }
+.billing-action-button { border:1px solid #111; background:#111; color:#fff; border-radius:9px; padding:9px 12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+.billing-action-button:hover { opacity:.9; }
+.invoice-payment-button { font-size:12px; padding:8px 11px; }
+.invoice-storage-notice { display:none; }
+@media (max-width: 980px) {
+    .billing-dashboard-grid { grid-template-columns: 1fr; }
+    .billing-action-row { grid-template-columns: 1fr auto; }
+    .billing-action-status { grid-column: 1; }
+    .billing-action-button { grid-column: 2; grid-row: 1 / span 2; }
+}

@@ -1,4 +1,6 @@
 const invoiceStorageKey = "zymaInvoices";
+const invoiceApiEnabled = Boolean(window.ZYMA_PAY_CONFIG?.API_ENABLED && window.zymaApi?.isEnabled());
+let invoiceCache = [];
 const invoiceForm = document.getElementById("invoiceForm");
 const invoiceItems = document.getElementById("invoiceItems");
 const savedInvoices = document.getElementById("savedInvoices");
@@ -90,37 +92,92 @@ function bindInvoiceItem(row) {
     });
 }
 
-function loadInvoices() {
-    let stored;
-
+function normalizeInvoice(invoice) {
+    let items = [];
     try {
-        stored = localStorage.getItem(invoiceStorageKey);
-    } catch (error) {
-        console.error("Unable to read saved invoices.", error);
-        invoiceRegisterMessage.textContent =
-            "Saved invoices are unavailable because browser storage could not be read.";
-        return [];
+        items = invoice.itemsJson ? JSON.parse(invoice.itemsJson) : [];
+    } catch {
+        items = [];
     }
+    return {
+        ...invoice,
+        id: invoice.id || invoice.Id,
+        number: invoice.invoiceNumber ?? invoice.number ?? "",
+        client: invoice.clientName ?? invoice.client ?? "",
+        email: invoice.clientEmail ?? invoice.email ?? "",
+        issueDate: invoice.invoiceDate ?? invoice.issueDate ?? "",
+        dueDate: invoice.dueDate ?? "",
+        billingAddress: invoice.billingAddress ?? "",
+        terms: invoice.terms || "Due on Receipt",
+        notes: invoice.notes || defaultInvoiceNotes,
+        items,
+        subtotal: Number(invoice.subtotal ?? invoice.amount ?? invoice.total ?? 0),
+        vatAmount: Number(invoice.vatAmount ?? 0),
+        total: Number(invoice.amount ?? invoice.total ?? 0),
+        status: normalizeInvoiceStatus(invoice.status)
+    };
+}
 
-    if (!stored) return [];
+function normalizeInvoiceStatus(status) {
+    const value = String(status ?? "Draft").trim().toLowerCase();
+    if (value === "paid") return "paid";
+    if (value === "sent" || value === "unpaid" || value === "awaiting payment" || value === "awaiting_payment") return "sent";
+    if (value === "cancelled" || value === "canceled") return "cancelled";
+    return "draft";
+}
 
+function invoiceApiStatus(status) {
+    return status === "paid" ? "Paid" : status === "sent" ? "Sent" : status === "cancelled" ? "Cancelled" : "Draft";
+}
+
+function invoiceToApiPayload(invoice) {
+    return {
+        invoiceNumber: invoice.number,
+        clientName: invoice.client,
+        clientEmail: invoice.email,
+        amount: Number(invoice.total) || 0,
+        subtotal: Number(invoice.subtotal) || 0,
+        vatAmount: Number(invoice.vatAmount) || 0,
+        billingAddress: invoice.billingAddress || null,
+        terms: invoice.terms || null,
+        notes: invoice.notes || null,
+        itemsJson: JSON.stringify(invoice.items || []),
+        invoiceDate: invoice.issueDate,
+        dueDate: invoice.dueDate || null,
+        status: invoiceApiStatus(invoice.status)
+    };
+}
+
+function loadInvoices() {
+    if (invoiceApiEnabled) return invoiceCache.slice();
     try {
+        const stored = localStorage.getItem(invoiceStorageKey);
+        if (!stored) return [];
         const invoices = JSON.parse(stored);
-        if (!Array.isArray(invoices)) {
-            throw new Error("Saved invoice data is not a list.");
-        }
-        return invoices.map(invoice => ({
-            ...invoice,
-            terms: invoice.terms || "Due on Receipt",
-            notes: invoice.notes || defaultInvoiceNotes,
-            status: ["draft", "sent", "paid"].includes(invoice.status)
-                ? invoice.status
-                : "draft"
-        }));
+        if (!Array.isArray(invoices)) throw new Error("Saved invoice data is not a list.");
+        return invoices.map(normalizeInvoice);
     } catch (error) {
         console.error("Unable to restore saved invoices.", error);
-        invoiceRegisterMessage.textContent =
-            "Saved invoice data could not be read. Create a new invoice to continue.";
+        invoiceRegisterMessage.textContent = "Saved invoices could not be read.";
+        return [];
+    }
+}
+
+async function loadInvoicesFromApi() {
+    if (!invoiceApiEnabled) return loadInvoices();
+    try {
+        const response = await window.zymaApi.listInvoices();
+        const items = Array.isArray(response) ? response : response?.items || [];
+        invoiceCache = items.map(normalizeInvoice);
+        renderSavedInvoices(invoiceCache);
+        const next = nextInvoiceNumber(invoiceCache, new Date().getFullYear());
+        const numberInput = document.getElementById("invoiceNumber");
+        if (numberInput && !numberInput.value) numberInput.value = next;
+        return invoiceCache.slice();
+    } catch (error) {
+        console.error("Unable to load invoices from API.", error);
+        invoiceRegisterMessage.textContent = error.message || "Invoices could not be loaded from the server.";
+        renderSavedInvoices([]);
         return [];
     }
 }
@@ -232,12 +289,23 @@ function renderSavedInvoices(invoices) {
             "aria-label",
             `Delete invoice ${invoice.number}`
         );
-        deleteButton.addEventListener("click", () => deleteInvoice(invoice.number));
+        deleteButton.addEventListener("click", () => deleteInvoice(invoice.id || invoice.number));
         status.addEventListener("change", () => {
-            updateInvoiceStatus(invoice.number, status.value);
+            updateInvoiceStatus(invoice.id || invoice.number, status.value);
         });
 
         details.append(number, email);
+        if (invoice.status === "sent") {
+            const paymentButton = document.createElement("button");
+            paymentButton.type = "button";
+            paymentButton.className = "primary-button invoice-payment-button";
+            paymentButton.textContent = "Record Payment";
+            paymentButton.addEventListener("click", () => {
+                const query = new URLSearchParams({ invoice: invoice.number });
+                window.location.href = `dashboard.html?${query.toString()}`;
+            });
+            actions.append(paymentButton);
+        }
         actions.append(previewButton, downloadButton, deleteButton);
         row.append(details, client, issued, dueDate, amount, status, actions);
         savedInvoices.append(row);
@@ -257,104 +325,47 @@ function updateInvoiceSummary(invoices) {
         String(invoices.filter(invoice => invoice.status === "paid").length);
 }
 
-function updateInvoiceStatus(number, status) {
-    if (!["draft", "sent", "paid"].includes(status)) return;
-
-    const invoices = loadInvoices();
-    const invoice = invoices.find(saved => saved.number === number);
-    if (!invoice) {
-        invoiceRegisterMessage.textContent =
-            "That invoice could not be found. Refresh the list and try again.";
-        return;
-    }
-
-    const previousStatus = invoice.status;
-    invoice.status = status;
-
-    try {
+async function updateInvoiceStatus(idOrNumber, status) {
+    if (!invoiceApiEnabled) {
+        const invoices = loadInvoices();
+        const invoice = invoices.find(saved => saved.number === idOrNumber);
+        if (!invoice) return;
+        invoice.status = status;
         localStorage.setItem(invoiceStorageKey, JSON.stringify(invoices));
-    } catch (error) {
-        console.error("Unable to update invoice status.", error);
-        invoiceRegisterMessage.textContent =
-            "Invoice status could not be saved in this browser.";
-        invoice.status = previousStatus;
         renderSavedInvoices(invoices);
         return;
     }
-
-    renderSavedInvoices(invoices);
+    const invoice = invoiceCache.find(item => item.id === idOrNumber || item.number === idOrNumber);
+    if (!invoice) return;
+    try {
+        await window.zymaApi.updateInvoice(invoice.id, { status: invoiceApiStatus(status) });
+        await loadInvoicesFromApi();
+        window.dispatchEvent(new CustomEvent("zyma:billing-updated"));
+        invoiceRegisterMessage.textContent = `${invoice.number} is now ${invoiceApiStatus(status)}.`;
+    } catch (error) {
+        renderSavedInvoices(invoiceCache);
+        invoiceRegisterMessage.textContent = error.message || "Invoice status could not be updated.";
+    }
 }
 
-function deleteInvoice(number) {
-    if (!window.confirm(`Delete invoice ${number}? This cannot be undone.`)) {
+async function deleteInvoice(idOrNumber) {
+    if (!window.confirm(`Delete this invoice? This cannot be undone.`)) return;
+    if (!invoiceApiEnabled) {
+        const invoices = loadInvoices().filter(invoice => invoice.number !== idOrNumber);
+        localStorage.setItem(invoiceStorageKey, JSON.stringify(invoices));
+        renderSavedInvoices(invoices);
         return;
     }
-
-    let stored;
-
+    const invoice = invoiceCache.find(item => item.id === idOrNumber || item.number === idOrNumber);
+    if (!invoice) return;
     try {
-        stored = localStorage.getItem(invoiceStorageKey);
+        await window.zymaApi.deleteInvoice(invoice.id);
+        await loadInvoicesFromApi();
+        window.dispatchEvent(new CustomEvent("zyma:billing-updated"));
+        invoiceRegisterMessage.textContent = `${invoice.number} was deleted.`;
     } catch (error) {
-        console.error("Unable to read invoices before deleting.", error);
-        invoiceRegisterMessage.textContent =
-            "Invoice could not be deleted because saved records are unavailable.";
-        return;
+        invoiceRegisterMessage.textContent = error.message || "Invoice could not be deleted.";
     }
-
-    let invoices;
-
-    try {
-        invoices = stored ? JSON.parse(stored) : [];
-        if (!Array.isArray(invoices)) {
-            throw new Error("Saved invoice data is not a list.");
-        }
-    } catch (error) {
-        console.error("Unable to parse invoices before deleting.", error);
-        invoiceRegisterMessage.textContent =
-            "Invoice could not be deleted because the saved invoice list is invalid.";
-        return;
-    }
-
-    const matchingInvoices =
-        invoices.filter(invoice => invoice.number === number);
-
-    if (!matchingInvoices.length) {
-        invoiceRegisterMessage.textContent =
-            `Invoice ${number} was not found. Refresh the page and try again.`;
-        return;
-    }
-
-    const remainingInvoices =
-        invoices.filter(invoice => invoice.number !== number);
-
-    try {
-        localStorage.setItem(
-            invoiceStorageKey,
-            JSON.stringify(remainingInvoices)
-        );
-    } catch (error) {
-        console.error("Unable to save invoices after deletion.", error);
-        invoiceRegisterMessage.textContent =
-            `Invoice ${number} could not be deleted from browser storage.`;
-        return;
-    }
-
-    if (currentPreviewInvoiceNumber === number) {
-        invoicePdfViewer.removeAttribute("src");
-        downloadInvoicePdf.removeAttribute("href");
-        invoicePreview.hidden = true;
-
-        if (currentPdfUrl) {
-            URL.revokeObjectURL(currentPdfUrl);
-            currentPdfUrl = "";
-        }
-
-        currentPreviewInvoiceNumber = "";
-    }
-
-    renderSavedInvoices(remainingInvoices);
-    invoiceRegisterMessage.textContent =
-        `Invoice ${number} was deleted.`;
 }
 
 function filterInvoices() {
@@ -836,12 +847,12 @@ invoiceVat.addEventListener("change", updateInvoiceTotals);
 setDefaultInvoiceDates();
 
 const currentInvoices = loadInvoices();
-document.getElementById("invoiceNumber").value =
-    nextInvoiceNumber(currentInvoices, new Date().getFullYear());
+document.getElementById("invoiceNumber").value = nextInvoiceNumber(currentInvoices, new Date().getFullYear());
 renderSavedInvoices(currentInvoices);
 updateInvoiceTotals();
+if (invoiceApiEnabled) loadInvoicesFromApi();
 
-invoiceForm.addEventListener("submit", event => {
+invoiceForm.addEventListener("submit", async event => {
     event.preventDefault();
     invoiceFormMessage.textContent = "";
 
@@ -896,28 +907,29 @@ invoiceForm.addEventListener("submit", event => {
 
     const invoices = loadInvoices();
     if (invoices.some(saved => saved.number === invoice.number)) {
-        invoiceFormMessage.textContent =
-            "That invoice number already exists. Refresh the page to generate the next number.";
+        invoiceFormMessage.textContent = "That invoice number already exists.";
         return;
     }
-
-    invoices.push(invoice);
 
     try {
-        localStorage.setItem(invoiceStorageKey, JSON.stringify(invoices));
+        if (invoiceApiEnabled) {
+            const saved = normalizeInvoice(await window.zymaApi.createInvoice(invoiceToApiPayload(invoice)));
+            invoiceCache.unshift(saved);
+            renderSavedInvoices(invoiceCache);
+            window.dispatchEvent(new CustomEvent("zyma:billing-updated"));
+            invoiceRegisterMessage.textContent = `${saved.number} created as a draft and shared with staff.`;
+            document.getElementById("invoiceNumber").value = nextInvoiceNumber(invoiceCache, new Date().getFullYear());
+        } else {
+            invoices.push(invoice);
+            localStorage.setItem(invoiceStorageKey, JSON.stringify(invoices));
+            renderSavedInvoices(invoices);
+            invoiceRegisterMessage.textContent = `${invoice.number} created as a draft.`;
+            document.getElementById("invoiceNumber").value = nextInvoiceNumber(invoices, new Date().getFullYear());
+        }
     } catch (error) {
-        console.error("Unable to save invoice.", error);
-        invoiceFormMessage.textContent =
-            "Invoice could not be saved in this browser. Check available storage and try again.";
+        invoiceFormMessage.textContent = error.message || "Invoice could not be saved.";
         return;
     }
-
-    renderSavedInvoices(invoices);
-    invoiceFormPanel.hidden = true;
-    invoiceRegisterMessage.textContent =
-        `${invoice.number} created as a draft. Preview or download its PDF from the invoice register.`;
-    document.getElementById("invoiceNumber").value =
-        nextInvoiceNumber(invoices, new Date().getFullYear());
     document.getElementById("invoiceClient").value = "";
     document.getElementById("invoiceEmail").value = "";
     document.getElementById("invoiceBillingAddress").value = "";
@@ -932,3 +944,10 @@ invoiceForm.addEventListener("submit", event => {
     invoiceVat.checked = false;
     updateInvoiceTotals();
 });
+
+if (invoiceApiEnabled) {
+    window.addEventListener("pageshow", () => loadInvoicesFromApi());
+    window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") loadInvoicesFromApi();
+    });
+}
