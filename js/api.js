@@ -37,8 +37,10 @@
             headers.set("Content-Type", "application/json");
         }
         headers.set("Accept", "application/json");
+
         const method = String(options.method || "GET").toUpperCase();
-        if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !headers.has("X-Zyma-Requested-With")) {
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(method) &&
+            !headers.has("X-Zyma-Requested-With")) {
             headers.set("X-Zyma-Requested-With", "ZymaPay");
         }
 
@@ -110,24 +112,17 @@
     }
 
     async function uploadPaymentDocument(id, file, type) {
-        const formData = new FormData();
-        formData.append("file", file, file.name);
-        formData.append("type", type);
+        const data = new FormData();
+        data.append("file", file, file.name);
+        data.append("type", String(type));
         return request(`/payments/${encodeURIComponent(id)}/documents`, {
             method: "POST",
-            body: formData
+            body: data
         });
     }
 
-    async function createPaymentDraft(formData) {
-        return request("/payments/drafts", { method: "POST", body: formData });
-    }
-
-    async function updatePaymentStatus(id, status) {
-        if (status !== "paid") {
-            throw new ApiError("Payments can only be confirmed from Awaiting Reflection to Paid.", 400);
-        }
-        return postJson(`/payments/${encodeURIComponent(id)}/confirm`, { note: null });
+    async function confirmPayment(id, note = null) {
+        return postJson(`/payments/${encodeURIComponent(id)}/confirm`, { note });
     }
 
     async function sendPaymentEmail(id) {
@@ -223,7 +218,7 @@
     window.zymaApi = {
         ApiError, isEnabled, request, get, postJson, patchJson, deleteRequest,
         login, logout, getCurrentUser, listPayments, createPayment,
-        uploadPaymentDocument, createPaymentDraft, updatePaymentStatus, sendPaymentEmail, listInvoices, createInvoice,
+        uploadPaymentDocument, confirmPayment, sendPaymentEmail, listInvoices, createInvoice,
         updateInvoice, deleteInvoice, listReceipts, createReceipt, deleteReceipt,
         listEmailTemplates, createEmailTemplate, updateEmailTemplate, listActivity,
         getSettings, updateSettings, listPaymentMethods, createPaymentMethod, listStaff,

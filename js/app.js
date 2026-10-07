@@ -302,32 +302,27 @@ async function loadCurrentUserFromApi() {
     }
 }
 
-function getPaymentFormData() {
+function getPaymentRequest() {
+    const statusValue = paymentStatus.value;
     return {
         clientName: clientName.value.trim(),
         clientEmail: clientEmail.value.trim(),
         invoiceNumber: invoiceNumber.value.trim(),
         receiptNumber: receiptNumber.value.trim() || null,
-        amount: Number(amount.value),
+        amount: Number(String(amount.value).replace(/[^0-9.,-]/g, "").replace(",", ".")),
         paymentMethod: paymentType.value,
         paymentDate: paymentDate.value,
-        status: toApiPaymentStatus(paymentStatus.value)
+        // ASP.NET enum values: AwaitingReflection=0, Paid=1, Cancelled=2
+        status: toApiPaymentStatus(statusValue)
     };
 }
 
-async function uploadPaymentDocuments(paymentId) {
-    const uploads = [
-        ["proofFile", "ProofOfPayment"],
-        ["invoiceFile", "Invoice"],
-        ["receiptFile", "SalesReceipt"]
-    ];
-
-    for (const [inputId, type] of uploads) {
-        const input = document.getElementById(inputId);
-        const file = input?.files?.[0];
-        if (!file) continue;
-        await window.zymaApi.uploadPaymentDocument(paymentId, file, type);
-    }
+function getPaymentDocuments() {
+    return [
+        { input: document.getElementById("proofFile"), type: 0, label: "Proof of Payment" },
+        { input: document.getElementById("invoiceFile"), type: 1, label: "Invoice" },
+        { input: document.getElementById("receiptFile"), type: 2, label: "Sales Receipt" }
+    ].filter(item => item.input?.files?.[0]);
 }
 
 function resetPaymentForm() {
@@ -358,12 +353,17 @@ async function submitPaymentToApi() {
     }
 
     try {
-        const response = await window.zymaApi.createPayment(
-            getPaymentFormData()
-        );
+        const payment = await window.zymaApi.createPayment(getPaymentRequest());
 
-        if (response?.id) {
-            await uploadPaymentDocuments(response.id);
+        // Documents are stored through the dedicated payment document endpoint
+        // after the payment record has been created.
+        const documents = getPaymentDocuments();
+        for (const document of documents) {
+            await window.zymaApi.uploadPaymentDocument(
+                payment.id,
+                document.input.files[0],
+                document.type
+            );
         }
 
         resetPaymentForm();
@@ -372,8 +372,7 @@ async function submitPaymentToApi() {
         showPage("payments");
         showToast(
             "Payment Created",
-            response?.message ||
-                "The payment record was created successfully."
+            "The payment record and supporting documents were saved successfully."
         );
     } catch (error) {
         console.error("Unable to create payment.", error);
@@ -415,14 +414,13 @@ async function handleApiStatusChange(control) {
     control.disabled = true;
 
     try {
-        if (previousStatus === "paid" && nextStatus === "awaiting") {
+        if (nextStatus === "paid") {
+            await window.zymaApi.confirmPayment(paymentId);
+        } else {
+            // The backend intentionally has no endpoint to move a payment
+            // backwards from Paid to Awaiting Reflection.
             throw new Error("A confirmed payment cannot be moved back to Awaiting Reflection.");
         }
-
-        await window.zymaApi.updatePaymentStatus(
-            paymentId,
-            toApiPaymentStatus(nextStatus)
-        );
 
         row.dataset.status = nextStatus;
         control.dataset.status = nextStatus;
@@ -877,25 +875,6 @@ const saveDraft =
 if (saveDraft) {
 
     saveDraft.addEventListener("click", async () => {
-
-        if (isApiModeEnabled()) {
-            try {
-                await window.zymaApi.createPaymentDraft(
-                    getPaymentFormData(false)
-                );
-                showToast(
-                    "Draft Saved",
-                    "Payment draft saved to the Zyma Pay backend."
-                );
-            } catch (error) {
-                console.error("Unable to save payment draft.", error);
-                showToast(
-                    "Draft Not Saved",
-                    error.message || "The backend could not save this draft."
-                );
-            }
-            return;
-        }
 
         const draft = {
 

@@ -19,10 +19,10 @@ Edit `js/config.js`:
 
 ```js
 API_BASE_URL: "https://pay.zyma.co.za/api",
-API_ENABLED: true
+API_ENABLED: false
 ```
 
-Keep `API_ENABLED: true` while the backend is still being built.
+Keep `API_ENABLED: false` while the backend is still being built.
 
 When the backend is live and `/api/health` responds successfully, change it to:
 
@@ -135,7 +135,7 @@ Sales receipts:
 
 System:
 
-- `GET /health`
+- `GET /api/health`
 
 ## CORS
 
@@ -201,7 +201,7 @@ This repository is intended to be public. It must contain only frontend code and
 
 ## Current prototype behaviour
 
-With `API_ENABLED: true`, the existing browser prototype remains usable. Payment drafts/statuses and the existing invoice/sales-receipt prototype continue using their current browser-based behaviour.
+With `API_ENABLED: false`, the existing browser prototype remains usable. Payment drafts/statuses and the existing invoice/sales-receipt prototype continue using their current browser-based behaviour.
 
 Once API mode is enabled, the main payment workflow switches to the backend for:
 
