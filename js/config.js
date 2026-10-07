@@ -9,7 +9,7 @@ window.ZYMA_PAY_CONFIG = Object.freeze({
 
     // Keep false while the ASP.NET Core API is being built.
     // Change to true once https://pay.zyma.co.za/api/health is live.
-    API_ENABLED: false,
+    API_ENABLED: true,
 
     REQUEST_TIMEOUT_MS: 15000,
 
