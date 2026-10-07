@@ -109,7 +109,12 @@ function normalizePayment(payment) {
         invoiceNumber: paymentValue(payment, "invoiceNumber", "invoice_number", "—"),
         receiptNumber: paymentValue(payment, "receiptNumber", "receipt_number", "—"),
         amount: Number(paymentValue(payment, "amount", "amount", 0)) || 0,
-        paymentType: paymentValue(payment, "paymentType", "payment_type", "Other"),
+        paymentType: paymentValue(
+            payment,
+            "paymentMethod",
+            "payment_method",
+            paymentValue(payment, "paymentType", "payment_type", "Other")
+        ),
         paymentDate: paymentValue(payment, "paymentDate", "payment_date", ""),
         status: toUiPaymentStatus(paymentValue(payment, "status", "status", "awaiting")),
         createdAt: paymentValue(payment, "createdAt", "created_at", "")
@@ -211,7 +216,21 @@ function createPaymentRow(payment, compact = false) {
         status.append(option);
     });
 
-    row.append(clientCell, invoice, receipt, amount, type, status);
+    const actions = document.createElement("div");
+    actions.className = "payment-row-actions";
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "invoice-delete-button";
+    deleteButton.textContent = "Delete";
+    deleteButton.setAttribute(
+        "aria-label",
+        `Delete payment for ${payment.invoiceNumber}`
+    );
+    deleteButton.addEventListener("click", () => deletePaymentFromApi(payment));
+
+    actions.append(status, deleteButton);
+    row.append(clientCell, invoice, receipt, amount, type, actions);
     bindPaymentStatusControl(status);
     return row;
 }
@@ -418,6 +437,30 @@ async function submitPaymentToApi() {
     }
 }
 
+async function deletePaymentFromApi(payment) {
+    if (!isApiModeEnabled() || !payment?.id) return;
+
+    const confirmed = window.confirm(
+        `Delete payment ${payment.invoiceNumber} for ${formatCurrency(payment.amount)}? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await window.zymaApi.deletePayment(payment.id);
+        await loadPaymentsFromApi();
+        showToast(
+            "Payment Deleted",
+            `Payment ${payment.invoiceNumber} was permanently deleted.`
+        );
+    } catch (error) {
+        showToast(
+            "Payment Not Deleted",
+            error.message || "The backend could not delete this payment."
+        );
+    }
+}
+
 async function handleApiStatusChange(control) {
     const row = control.closest(".searchable-row");
     if (!row) return;
@@ -505,6 +548,10 @@ function showPage(pageId) {
         top: 0,
         behavior: "smooth"
     });
+
+    if (isApiModeEnabled() && (pageId === "dashboard" || pageId === "payments")) {
+        loadPaymentsFromApi();
+    }
 }
 
 
@@ -1401,7 +1448,20 @@ document.querySelectorAll(
 
 
 /* =========================================================
-   INITIAL PREVIEW
+   INITIAL DATA LOAD
 ========================================================= */
 
 updatePreview();
+
+if (isApiModeEnabled()) {
+    // The backend is the source of truth. Load persisted payments whenever
+    // the application starts so refresh/login never resets the visible data.
+    loadCurrentUserFromApi();
+    loadPaymentsFromApi();
+
+    // Browser back/forward navigation can restore a page from the bfcache.
+    // Rehydrate the payment state when that happens as well.
+    window.addEventListener("pageshow", () => {
+        loadPaymentsFromApi();
+    });
+}

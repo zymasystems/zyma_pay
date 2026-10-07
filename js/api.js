@@ -125,6 +125,10 @@
         return postJson(`/payments/${encodeURIComponent(id)}/confirm`, { note });
     }
 
+    async function deletePayment(id) {
+        return deleteRequest(`/payments/${encodeURIComponent(id)}`);
+    }
+
     async function sendPaymentEmail(id) {
         return postJson(`/payments/${encodeURIComponent(id)}/send-email`, {});
     }
@@ -218,7 +222,7 @@
     window.zymaApi = {
         ApiError, isEnabled, request, get, postJson, patchJson, deleteRequest,
         login, logout, getCurrentUser, listPayments, createPayment,
-        uploadPaymentDocument, confirmPayment, sendPaymentEmail, listInvoices, createInvoice,
+        uploadPaymentDocument, confirmPayment, deletePayment, sendPaymentEmail, listInvoices, createInvoice,
         updateInvoice, deleteInvoice, listReceipts, createReceipt, deleteReceipt,
         listEmailTemplates, createEmailTemplate, updateEmailTemplate, listActivity,
         getSettings, updateSettings, listPaymentMethods, createPaymentMethod, listStaff,
