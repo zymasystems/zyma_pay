@@ -65,7 +65,12 @@ function toApiPaymentStatus(status) {
 }
 
 function toUiPaymentStatus(status) {
-    return status === "paid" ? "paid" : "awaiting";
+    // ASP.NET Core serializes PaymentStatus as a numeric enum by default:
+    // AwaitingReflection = 0, Paid = 1, Cancelled = 2.
+    // Accept numeric, string enum and existing UI values for compatibility.
+    if (status === 1 || status === "1" || status === "paid" || status === "Paid" || status === "PaymentConfirmed")
+        return "paid";
+    return "awaiting";
 }
 
 function paymentValue(payment, camelName, snakeName, fallback = "") {
@@ -82,7 +87,12 @@ function normalizePayment(payment) {
         invoiceNumber: paymentValue(payment, "invoiceNumber", "invoice_number", "—"),
         receiptNumber: paymentValue(payment, "receiptNumber", "receipt_number", "—"),
         amount: Number(paymentValue(payment, "amount", "amount", 0)) || 0,
-        paymentType: paymentValue(payment, "paymentType", "payment_type", "Other"),
+        paymentType: paymentValue(
+            payment,
+            "paymentMethod",
+            "payment_method",
+            paymentValue(payment, "paymentType", "payment_type", "Other")
+        ),
         paymentDate: paymentValue(payment, "paymentDate", "payment_date", ""),
         status: toUiPaymentStatus(paymentValue(payment, "status", "status", "awaiting")),
         createdAt: paymentValue(payment, "createdAt", "created_at", "")
@@ -152,8 +162,8 @@ function createPaymentRow(payment, compact = false) {
         status.className = `badge ${payment.status === "paid" ? "paid" : "pending"}`;
         status.textContent =
             payment.status === "paid"
-                ? "Payment Received"
-                : "Awaiting";
+                ? "Paid"
+                : "Awaiting Reflection";
         row.append(clientCell, invoice, amount, status);
         return row;
     }
@@ -175,7 +185,7 @@ function createPaymentRow(payment, compact = false) {
 
     [
         ["awaiting", "Awaiting Reflection"],
-        ["paid", "Payment Received"]
+        ["paid", "Paid"]
     ].forEach(([value, label]) => {
         const option = document.createElement("option");
         option.value = value;
@@ -649,13 +659,13 @@ function updatePreview() {
             "PAYMENT CONFIRMED";
 
         previewHeading.innerHTML =
-            "Payment received.";
+            "Payment confirmed.";
 
         previewIntro.textContent =
             "Your payment has been successfully received, verified and allocated to the invoice below.";
 
         previewStatus.textContent =
-            "Payment Received";
+            "Payment Confirmed";
 
         previewNotice.innerHTML = `
             <strong>PAYMENT VERIFIED</strong>
