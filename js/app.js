@@ -65,11 +65,33 @@ function toApiPaymentStatus(status) {
 }
 
 function toUiPaymentStatus(status) {
-    // ASP.NET Core serializes PaymentStatus as a numeric enum by default:
-    // AwaitingReflection = 0, Paid = 1, Cancelled = 2.
-    // Accept numeric, string enum and existing UI values for compatibility.
-    if (status === 1 || status === "1" || status === "paid" || status === "Paid" || status === "PaymentConfirmed")
+    // The API may return PaymentStatus as a numeric enum or as a string,
+    // depending on serializer configuration. Normalize both forms.
+    if (typeof status === "number") {
+        if (status === 1) return "paid";
+        if (status === 2) return "cancelled";
+        return "awaiting";
+    }
+
+    const normalized = String(status ?? "").trim().toLowerCase();
+
+    if (
+        normalized === "1" ||
+        normalized === "paid" ||
+        normalized === "paymentconfirmed" ||
+        normalized === "payment confirmed"
+    ) {
         return "paid";
+    }
+
+    if (
+        normalized === "2" ||
+        normalized === "cancelled" ||
+        normalized === "canceled"
+    ) {
+        return "cancelled";
+    }
+
     return "awaiting";
 }
 
@@ -87,12 +109,7 @@ function normalizePayment(payment) {
         invoiceNumber: paymentValue(payment, "invoiceNumber", "invoice_number", "—"),
         receiptNumber: paymentValue(payment, "receiptNumber", "receipt_number", "—"),
         amount: Number(paymentValue(payment, "amount", "amount", 0)) || 0,
-        paymentType: paymentValue(
-            payment,
-            "paymentMethod",
-            "payment_method",
-            paymentValue(payment, "paymentType", "payment_type", "Other")
-        ),
+        paymentType: paymentValue(payment, "paymentType", "payment_type", "Other"),
         paymentDate: paymentValue(payment, "paymentDate", "payment_date", ""),
         status: toUiPaymentStatus(paymentValue(payment, "status", "status", "awaiting")),
         createdAt: paymentValue(payment, "createdAt", "created_at", "")
@@ -434,18 +451,17 @@ async function handleApiStatusChange(control) {
             throw new Error("A confirmed payment cannot be moved back to Awaiting Reflection.");
         }
 
-        row.dataset.status = nextStatus;
-        control.dataset.status = nextStatus;
-        filterPayments();
+        // The API is the source of truth. Reload the payment collection after
+        // every successful state change so Payments and Overview cannot drift.
+        await loadPaymentsFromApi();
 
         showToast(
             "Payment Updated",
-            nextStatus === "paid"
-                ? "Payment marked as received."
-                : "Payment set to awaiting reflection."
+            "Payment status was updated successfully."
         );
     } catch (error) {
         control.value = previousStatus;
+        control.dataset.status = previousStatus;
         showToast(
             "Status Not Updated",
             error.message || "The backend could not update this payment."
@@ -659,13 +675,13 @@ function updatePreview() {
             "PAYMENT CONFIRMED";
 
         previewHeading.innerHTML =
-            "Payment confirmed.";
+            "Payment received.";
 
         previewIntro.textContent =
             "Your payment has been successfully received, verified and allocated to the invoice below.";
 
         previewStatus.textContent =
-            "Payment Confirmed";
+            "Payment Received";
 
         previewNotice.innerHTML = `
             <strong>PAYMENT VERIFIED</strong>
