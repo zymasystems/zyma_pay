@@ -302,31 +302,32 @@ async function loadCurrentUserFromApi() {
     }
 }
 
-function getPaymentFormData(includeFiles = true) {
-    const data = new FormData();
+function getPaymentFormData() {
+    return {
+        clientName: clientName.value.trim(),
+        clientEmail: clientEmail.value.trim(),
+        invoiceNumber: invoiceNumber.value.trim(),
+        receiptNumber: receiptNumber.value.trim() || null,
+        amount: Number(amount.value),
+        paymentMethod: paymentType.value,
+        paymentDate: paymentDate.value,
+        status: toApiPaymentStatus(paymentStatus.value)
+    };
+}
 
-    data.append("clientName", clientName.value.trim());
-    data.append("clientEmail", clientEmail.value.trim());
-    data.append("invoiceNumber", invoiceNumber.value.trim());
-    data.append("receiptNumber", receiptNumber.value.trim());
-    data.append("amount", amount.value);
-    data.append("paymentType", paymentType.value);
-    data.append("paymentDate", paymentDate.value);
-    data.append("status", toApiPaymentStatus(paymentStatus.value));
+async function uploadPaymentDocuments(paymentId) {
+    const uploads = [
+        ["proofFile", "ProofOfPayment"],
+        ["invoiceFile", "Invoice"],
+        ["receiptFile", "SalesReceipt"]
+    ];
 
-    if (includeFiles) {
-        [
-            ["proofOfPayment", document.getElementById("proofFile")],
-            ["invoice", document.getElementById("invoiceFile")],
-            ["salesReceipt", document.getElementById("receiptFile")]
-        ].forEach(([field, input]) => {
-            if (input?.files?.[0]) {
-                data.append(field, input.files[0], input.files[0].name);
-            }
-        });
+    for (const [inputId, type] of uploads) {
+        const input = document.getElementById(inputId);
+        const file = input?.files?.[0];
+        if (!file) continue;
+        await window.zymaApi.uploadPaymentDocument(paymentId, file, type);
     }
-
-    return data;
 }
 
 function resetPaymentForm() {
@@ -358,8 +359,12 @@ async function submitPaymentToApi() {
 
     try {
         const response = await window.zymaApi.createPayment(
-            getPaymentFormData(true)
+            getPaymentFormData()
         );
+
+        if (response?.id) {
+            await uploadPaymentDocuments(response.id);
+        }
 
         resetPaymentForm();
         localStorage.removeItem("zymaPaymentDraft");
@@ -410,6 +415,10 @@ async function handleApiStatusChange(control) {
     control.disabled = true;
 
     try {
+        if (previousStatus === "paid" && nextStatus === "awaiting") {
+            throw new Error("A confirmed payment cannot be moved back to Awaiting Reflection.");
+        }
+
         await window.zymaApi.updatePaymentStatus(
             paymentId,
             toApiPaymentStatus(nextStatus)

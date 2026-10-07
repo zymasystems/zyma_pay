@@ -37,6 +37,10 @@
             headers.set("Content-Type", "application/json");
         }
         headers.set("Accept", "application/json");
+        const method = String(options.method || "GET").toUpperCase();
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !headers.has("X-Zyma-Requested-With")) {
+            headers.set("X-Zyma-Requested-With", "ZymaPay");
+        }
 
         try {
             const response = await fetch(buildUrl(path), {
@@ -54,6 +58,7 @@
             if (!response.ok) {
                 const message =
                     payload?.message ||
+                    payload?.error ||
                     payload?.title ||
                     (typeof payload === "string" && payload) ||
                     `Request failed with status ${response.status}.`;
@@ -100,8 +105,18 @@
         return get(`/payments${query.toString() ? `?${query}` : ""}`);
     }
 
-    async function createPayment(formData) {
-        return request("/payments", { method: "POST", body: formData });
+    async function createPayment(payment) {
+        return postJson("/payments", payment);
+    }
+
+    async function uploadPaymentDocument(id, file, type) {
+        const formData = new FormData();
+        formData.append("file", file, file.name);
+        formData.append("type", type);
+        return request(`/payments/${encodeURIComponent(id)}/documents`, {
+            method: "POST",
+            body: formData
+        });
     }
 
     async function createPaymentDraft(formData) {
@@ -109,7 +124,10 @@
     }
 
     async function updatePaymentStatus(id, status) {
-        return patchJson(`/payments/${encodeURIComponent(id)}/status`, { status });
+        if (status !== "paid") {
+            throw new ApiError("Payments can only be confirmed from Awaiting Reflection to Paid.", 400);
+        }
+        return postJson(`/payments/${encodeURIComponent(id)}/confirm`, { note: null });
     }
 
     async function sendPaymentEmail(id) {
@@ -198,13 +216,14 @@
     }
 
     async function health() {
-        return get("/health");
+        const apiRoot = baseUrl.replace(/\/api\/?$/i, "");
+        return request(`${apiRoot}/health`, { method: "GET" });
     }
 
     window.zymaApi = {
         ApiError, isEnabled, request, get, postJson, patchJson, deleteRequest,
         login, logout, getCurrentUser, listPayments, createPayment,
-        createPaymentDraft, updatePaymentStatus, sendPaymentEmail, listInvoices, createInvoice,
+        uploadPaymentDocument, createPaymentDraft, updatePaymentStatus, sendPaymentEmail, listInvoices, createInvoice,
         updateInvoice, deleteInvoice, listReceipts, createReceipt, deleteReceipt,
         listEmailTemplates, createEmailTemplate, updateEmailTemplate, listActivity,
         getSettings, updateSettings, listPaymentMethods, createPaymentMethod, listStaff,
