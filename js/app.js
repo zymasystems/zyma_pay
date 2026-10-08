@@ -310,56 +310,19 @@ function renderPaymentsFromApi(response) {
     filterPayments();
 }
 
-let paymentsLoadInFlight = null;
+async function loadPaymentsFromApi() {
+    if (!isApiModeEnabled()) return;
 
-async function loadPaymentsFromApi(options = {}) {
-    if (!isApiModeEnabled()) return null;
-
-    // Prevent navigation/pageshow/visibility handlers from firing overlapping
-    // requests against the same collection.
-    if (paymentsLoadInFlight) return paymentsLoadInFlight;
-
-    paymentsLoadInFlight = (async () => {
-        let lastError = null;
-
-        for (let attempt = 1; attempt <= 2; attempt += 1) {
-            try {
-                const response = await window.zymaApi.listPayments({ pageSize: 100 });
-                renderPaymentsFromApi(response);
-                return response;
-            } catch (error) {
-                lastError = error;
-
-                // Authentication failures are handled centrally by api.js/auth.js.
-                if (error?.status === 401) return null;
-
-                // Give a transient browser/CORS/network condition one short retry.
-                if (error?.status === 0 && attempt === 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    continue;
-                }
-
-                break;
-            }
-        }
-
-        console.error("Unable to load Zyma Pay payments.", lastError);
-
-        // Do not claim the backend is down for a normal HTTP/API error.
-        // The caller can still inspect the exact ApiError in the console.
-        if (options.notify !== false && lastError?.status === 0) {
-            showToast(
-                "Connection Problem",
-                "The browser could not reach the payment API. Check the API connection or sign in again."
-            );
-        }
-
-        return null;
-    })().finally(() => {
-        paymentsLoadInFlight = null;
-    });
-
-    return paymentsLoadInFlight;
+    try {
+        const response = await window.zymaApi.listPayments({ pageSize: 100 });
+        renderPaymentsFromApi(response);
+    } catch (error) {
+        console.error("Unable to load Zyma Pay payments.", error);
+        showToast(
+            "Backend Unavailable",
+            error.message || "Payments could not be loaded from the API."
+        );
+    }
 }
 
 
@@ -1679,14 +1642,14 @@ updatePreview();
 if (isApiModeEnabled()) {
     // The backend is the source of truth. Load persisted payments whenever
     // the application starts so refresh/login never resets the visible data.
-    loadCurrentUserFromApi()
-        .finally(() => loadPaymentsFromApi({ notify: false }));
+    loadCurrentUserFromApi();
+    loadPaymentsFromApi();
     awaitBillingMigrationAndRefresh();
 
     // Browser back/forward navigation can restore a page from the bfcache.
     // Rehydrate the payment state when that happens as well.
     window.addEventListener("pageshow", () => {
-        loadPaymentsFromApi({ notify: false });
+        loadPaymentsFromApi();
         loadBillingDashboard();
     });
 

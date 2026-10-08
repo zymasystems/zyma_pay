@@ -67,7 +67,7 @@ function setupAuthForm(formId, messageId) {
 
         if (!authApiEnabled()) {
             message.textContent =
-                "Staff authentication is not connected yet. Enable API mode after the backend is deployed.";
+                "Unable to connect to the staff authentication service. Please refresh and try again.";
             message.classList.remove("error");
             return;
         }
