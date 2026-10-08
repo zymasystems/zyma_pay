@@ -4,7 +4,7 @@
  * This file is intentionally public because the frontend is hosted on GitHub Pages.
  * Never put passwords, API keys, database credentials or Zoho credentials here.
  */
-window.ZYMA_PAY_CONFIG = Object.freeze({
+// Frontend API connectivity revision: 2026-10-08-r2\nwindow.ZYMA_PAY_CONFIG = Object.freeze({
     API_BASE_URL: "https://pay.zyma.co.za/api",
 
     // Keep false while the ASP.NET Core API is being built.

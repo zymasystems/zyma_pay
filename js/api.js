@@ -47,8 +47,11 @@
         try {
             const response = await fetch(buildUrl(path), {
                 ...options,
+                mode: "cors",
                 headers,
                 credentials: "include",
+                cache: "no-store",
+                referrerPolicy: "strict-origin-when-cross-origin",
                 signal: controller.signal
             });
 
@@ -76,7 +79,12 @@
                 throw new ApiError("The request timed out. Please try again.");
             }
             if (error instanceof ApiError) throw error;
-            throw new ApiError("Unable to reach the Zyma Pay backend.", 0, error);
+            const detail = error?.message ? ` (${error.message})` : "";
+            throw new ApiError(
+                `Unable to reach the Zyma Pay backend${detail}`,
+                0,
+                { cause: error }
+            );
         } finally {
             clearTimeout(timeout);
         }
