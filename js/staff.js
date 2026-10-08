@@ -6,22 +6,24 @@
     let staff = [];
 
     const showPanel = show => { if (panel) panel.hidden = !show; };
-
     const setMessage = (text, error = false) => {
         if (!message) return;
         message.textContent = text;
         message.classList.toggle("error", error);
     };
-
     const escapeHtml = value => String(value ?? "").replace(/[&<>'"]/g, c => (
         {"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]
     ));
 
     function normalizeRole(value) {
-        return String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "_");
+        return String(value ?? "")
+            .trim()
+            .toLowerCase()
+            .replace(/[\s_-]+/g, "_");
     }
 
     function formatRole(value) {
+        const role = normalizeRole(value);
         const labels = {
             super_admin: "Super Admin",
             administrator: "Administrator",
@@ -29,7 +31,6 @@
             staff: "Staff",
             viewer: "Viewer"
         };
-        const role = normalizeRole(value);
         return labels[role] || String(value || "Staff");
     }
 
@@ -43,7 +44,6 @@
             year: "numeric"
         }).format(date);
     }
-
     function getApiErrorMessage(error) {
         const payload = error?.payload;
 

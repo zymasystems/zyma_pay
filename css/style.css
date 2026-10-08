@@ -4043,7 +4043,7 @@ body {
 
 .staff-head,
 .staff-row {
-    grid-template-columns: minmax(170px, 1.5fr) 130px 100px 130px 100px;
+    grid-template-columns: minmax(170px, 1.5fr) 125px 120px 105px 120px 90px;
 }
 
 .activity-head,
