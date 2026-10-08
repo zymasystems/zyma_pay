@@ -2132,6 +2132,54 @@ select {
     white-space: nowrap;
 }
 
+.file-selected-row {
+    max-width: 100%;
+
+    margin-top: 8px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+}
+
+.file-name-value {
+    max-width: 130px;
+
+    color: var(--green);
+
+    font-size: 8px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.remove-file {
+    flex: 0 0 auto;
+
+    padding: 3px 6px;
+
+    border: 1px solid #ded8cf;
+    border-radius: 5px;
+
+    background: #fff;
+
+    color: #777;
+
+    font: inherit;
+    font-size: 7px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.remove-file:hover {
+    border-color: var(--orange);
+    color: var(--orange-dark);
+}
+
 
 /* =========================================================
    EMAIL PREVIEW

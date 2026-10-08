@@ -580,18 +580,6 @@ async function submitPaymentToApi() {
     const documents = getPaymentDocuments();
     const request = getPaymentRequest();
 
-    // The awaiting-reflection email requires a Proof of Payment.
-    // Validate this before creating the payment so we do not create a
-    // payment record that cannot complete its communication workflow.
-    if (request.status === 0 && !documents.some(document => document.type === 0)) {
-        showToast(
-            "Proof of Payment Required",
-            "Upload a Proof of Payment before sending the awaiting-reflection email."
-        );
-        document.getElementById("proofFile")?.focus();
-        return;
-    }
-
     if (submitButton) {
         submitButton.disabled = true;
         submitButton.dataset.originalText = submitButton.textContent;
@@ -1085,12 +1073,17 @@ function setupFileInput(inputId, outputId) {
     if (!input || !output) return;
 
 
+    const clearFile = () => {
+        input.value = "";
+        output.textContent = "";
+    };
+
+
     input.addEventListener("change", () => {
 
+        output.innerHTML = "";
+
         if (!input.files.length) {
-
-            output.textContent = "";
-
             return;
         }
 
@@ -1098,8 +1091,34 @@ function setupFileInput(inputId, outputId) {
         const file =
             input.files[0];
 
-        output.textContent =
-            file.name;
+        const row =
+            document.createElement("span");
+
+        row.className = "file-selected-row";
+
+        const fileName =
+            document.createElement("span");
+
+        fileName.className = "file-name-value";
+        fileName.textContent = file.name;
+
+        const removeButton =
+            document.createElement("button");
+
+        removeButton.type = "button";
+        removeButton.className = "remove-file";
+        removeButton.textContent = "Remove";
+        removeButton.setAttribute("aria-label", `Remove ${file.name}`);
+
+        removeButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            clearFile();
+        });
+
+        row.appendChild(fileName);
+        row.appendChild(removeButton);
+        output.appendChild(row);
 
     });
 
