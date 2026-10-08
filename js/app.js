@@ -615,7 +615,9 @@ async function submitPaymentToApi() {
 
         // Send the exact server-side email template for the selected
         // payment status. The backend sends from payments@zyma.co.za.
+        console.info("[Zyma Pay] Sending payment email:", payment.id);
         await window.zymaApi.sendPaymentEmail(payment.id);
+        console.info("[Zyma Pay] Payment email request completed:", payment.id);
 
         resetPaymentForm();
         localStorage.removeItem("zymaPaymentDraft");
