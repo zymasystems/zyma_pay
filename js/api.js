@@ -99,6 +99,18 @@
         return get("/auth/me");
     }
 
+    async function firstPassword(email, token, newPassword) {
+        return postJson("/auth/first-password", { email, token, newPassword });
+    }
+
+    async function forgotPassword(email) {
+        return postJson("/auth/forgot-password", { email });
+    }
+
+    async function resetPassword(email, token, newPassword) {
+        return postJson("/auth/reset-password", { email, token, newPassword });
+    }
+
     async function listPayments(params = {}) {
         const query = new URLSearchParams();
         Object.entries(params).forEach(([key, value]) => {
@@ -221,7 +233,8 @@
 
     window.zymaApi = {
         ApiError, isEnabled, request, get, postJson, patchJson, deleteRequest,
-        login, logout, getCurrentUser, listPayments, createPayment,
+        login, logout, getCurrentUser, firstPassword, forgotPassword, resetPassword,
+        listPayments, createPayment,
         uploadPaymentDocument, confirmPayment, deletePayment, sendPaymentEmail, listInvoices, createInvoice,
         updateInvoice, deleteInvoice, listReceipts, createReceipt, deleteReceipt,
         listEmailTemplates, createEmailTemplate, updateEmailTemplate, listActivity,

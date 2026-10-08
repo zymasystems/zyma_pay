@@ -1,13 +1,8 @@
 /**
  * Zyma Pay authentication.
  *
- * Production mode:
- *   POST /api/auth/login
- *   GET  /api/auth/me
- *   POST /api/auth/logout
- *
- * The backend should issue a Secure, HttpOnly authentication cookie.
- * No password or bearer token is stored in browser storage.
+ * Authentication uses a Secure, HttpOnly cookie. Passwords and reset tokens
+ * are kept only in memory and are never written to browser storage.
  */
 function authApiEnabled() {
     return Boolean(
@@ -16,8 +11,8 @@ function authApiEnabled() {
     );
 }
 
-function setLoginMessage(message, isError = false) {
-    const element = document.getElementById("loginMessage");
+function setMessage(elementId, message, isError = false) {
+    const element = document.getElementById(elementId);
     if (!element) return;
     element.textContent = message;
     element.classList.toggle("error", isError);
@@ -34,13 +29,24 @@ async function handleApiLogin(email, password) {
         await window.zymaApi.login(email, password);
         window.location.href = "dashboard.html";
     } catch (error) {
-        console.error("Zyma Pay sign-in failed.", error);
-        setLoginMessage(
+        if (error.status === 403 &&
+            error.payload?.code === "PASSWORD_CHANGE_REQUIRED") {
+            const params = new URLSearchParams({
+                email: error.payload.email || email,
+                mode: "first-login"
+            });
+            window.location.href = `reset-password.html?${params.toString()}`;
+            return;
+        }
+
+        setMessage(
+            "loginMessage",
             error.status === 401
                 ? "The email address or password is incorrect."
                 : error.message || "Sign-in failed. Please try again.",
             true
         );
+
         if (submitButton) {
             submitButton.disabled = false;
             submitButton.textContent = "Sign in";
@@ -48,15 +54,12 @@ async function handleApiLogin(email, password) {
     }
 }
 
-function setupAuthForm(formId, messageId) {
-    const form = document.getElementById(formId);
-    const message = document.getElementById(messageId);
-
-    if (!form || !message) return;
+function setupLoginForm() {
+    const form = document.getElementById("loginForm");
+    if (!form) return;
 
     form.addEventListener("submit", async event => {
         event.preventDefault();
-
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
@@ -66,9 +69,7 @@ function setupAuthForm(formId, messageId) {
         const password = document.getElementById("loginPassword").value;
 
         if (!authApiEnabled()) {
-            message.textContent =
-                "Unable to connect to the staff authentication service. Please refresh and try again.";
-            message.classList.remove("error");
+            setMessage("loginMessage", "Unable to connect to the staff authentication service. Please try again.", true);
             return;
         }
 
@@ -76,7 +77,75 @@ function setupAuthForm(formId, messageId) {
     });
 }
 
-setupAuthForm("loginForm", "loginMessage");
+function setupForgotPassword() {
+    const link = document.getElementById("forgotPasswordLink");
+    const loginForm = document.getElementById("loginForm");
+    const forgotPanel = document.getElementById("forgotPasswordPanel");
+    const back = document.getElementById("backToLogin");
+    const email = document.getElementById("loginEmail");
+    const forgotEmail = document.getElementById("forgotEmail");
+    const form = document.getElementById("forgotPasswordForm");
+
+    if (!link || !loginForm || !forgotPanel || !form) return;
+
+    function showForgot() {
+        loginForm.hidden = true;
+        forgotPanel.hidden = false;
+        setMessage("forgotMessage", "");
+        if (forgotEmail && email?.value.trim()) forgotEmail.value = email.value.trim();
+        forgotEmail?.focus();
+    }
+
+    function showLogin() {
+        forgotPanel.hidden = true;
+        loginForm.hidden = false;
+        document.getElementById("loginEmail")?.focus();
+    }
+
+    link.addEventListener("click", event => {
+        event.preventDefault();
+        showForgot();
+    });
+
+    back?.addEventListener("click", showLogin);
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        if (!authApiEnabled()) {
+            setMessage("forgotMessage", "Unable to connect to the password recovery service. Please try again.", true);
+            return;
+        }
+
+        const button = form.querySelector("button[type='submit']");
+        const value = forgotEmail.value.trim();
+
+        button.disabled = true;
+        button.textContent = "Sending…";
+
+        try {
+            const result = await window.zymaApi.forgotPassword(value);
+            setMessage(
+                "forgotMessage",
+                result?.message ||
+                "If an active Zyma Pay account exists for that email address, a password reset link has been sent."
+            );
+            form.reset();
+        } catch (error) {
+            setMessage("forgotMessage", error.message || "Unable to request a password reset.", true);
+        } finally {
+            button.disabled = false;
+            button.textContent = "Send reset link";
+        }
+    });
+}
+
+setupLoginForm();
+setupForgotPassword();
 
 if (authApiEnabled()) {
     window.zymaApi.getCurrentUser().catch(error => {

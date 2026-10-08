@@ -47,12 +47,33 @@
 
                 <button class="primary-button auth-submit" type="submit">Sign in</button>
                 <p class="auth-form-message" id="loginMessage" aria-live="polite"></p>
+                <p class="auth-page-link">
+                    <a href="#forgot-password" id="forgotPasswordLink">Forgot your password?</a>
+                </p>
             </form>
+
+            <section class="forgot-password-panel" id="forgotPasswordPanel" hidden>
+                <div class="auth-subheading">
+                    <span class="eyebrow">ACCOUNT RECOVERY</span>
+                    <h2>Reset your password</h2>
+                    <p>Enter your Zyma Pay work email and we will send a secure password reset link if an active account exists.</p>
+                </div>
+
+                <form id="forgotPasswordForm">
+                    <div class="field">
+                        <label for="forgotEmail">Work email</label>
+                        <input type="email" id="forgotEmail" autocomplete="email" required>
+                    </div>
+                    <button class="primary-button auth-submit" type="submit">Send reset link</button>
+                    <p class="auth-form-message" id="forgotMessage" aria-live="polite"></p>
+                    <button class="text-button auth-switch" id="backToLogin" type="button">Back to sign in</button>
+                </form>
+            </section>
         </section>
     </main>
 
-    <script src="js/config.js?v=20261008-4"></script>
-    <script src="js/api.js?v=20261008-4"></script>
-    <script src="js/auth.js?v=20261008-4"></script>
+    <script src="js/config.js?v=20261008-5"></script>
+    <script src="js/api.js?v=20261008-5"></script>
+    <script src="js/auth.js?v=20261008-5"></script>
 </body>
 </html>
