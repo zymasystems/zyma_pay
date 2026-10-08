@@ -1438,6 +1438,36 @@ select {
     color: var(--text);
 }
 
+.invoice-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.invoice-logout {
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--muted-dark);
+    border-radius: 8px;
+    padding: 9px 13px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.invoice-logout:hover {
+    border-color: var(--text);
+    color: var(--text);
+}
+
+.invoice-logout:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+
 .invoice-content {
     width: min(100% - 36px, 1120px);
     margin: 38px auto 70px;
@@ -2697,9 +2727,17 @@ select {
         font-size: 14px;
     }
 
+    .invoice-topbar-actions {
+        gap: 8px;
+    }
+
     .invoice-back-link {
         padding: 10px 0 10px 10px;
         white-space: nowrap;
+    }
+
+    .invoice-logout {
+        padding: 9px 10px;
     }
 
     .form-panel {

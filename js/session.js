@@ -40,15 +40,24 @@
     }
 
     const logout = document.getElementById("logoutButton");
-    if (logout && apiEnabled) {
+    if (logout) {
         logout.addEventListener("click", async () => {
+            if (logout.disabled) return;
             logout.disabled = true;
+            logout.setAttribute("aria-busy", "true");
+
             try {
-                await window.zymaApi.logout();
+                if (apiEnabled) {
+                    await window.zymaApi.logout();
+                }
             } catch (error) {
-                console.warn("Logout request failed.", error);
+                // A 401 means the session is already gone. Either way,
+                // the correct client state after clicking Log out is signed out.
+                if (error.status !== 401) {
+                    console.warn("Logout request failed.", error);
+                }
             } finally {
-                window.location.href = "index.html";
+                window.location.replace("index.html");
             }
         });
     }

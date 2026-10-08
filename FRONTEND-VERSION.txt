@@ -1,3 +1,1 @@
-Zyma Pay frontend production: 2026-10-08-email-workflow-v1
-API_ENABLED=true
-API=https://pay.zyma.co.za/api
+Zyma Pay frontend build 20261008-6 — logout functionality
