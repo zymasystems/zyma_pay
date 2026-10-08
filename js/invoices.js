@@ -12,9 +12,11 @@ const invoiceFormMessage = document.getElementById("invoiceFormMessage");
 const invoiceRegisterMessage =
     document.getElementById("invoiceRegisterMessage");
 const invoiceVat = document.getElementById("invoiceVat");
+const invoiceDiscount = document.getElementById("invoiceDiscount");
 const invoiceTerms = document.getElementById("invoiceTerms");
 let currentPdfUrl = "";
 let invoiceLogoDataPromise;
+let generatedInvoiceNumber = "INV-1101";
 const defaultInvoiceNotes = `Please make payments to our business bank account:
 Bank: [Bank name]
 Name: [Account name]
@@ -69,14 +71,23 @@ function updateInvoiceTotals() {
             formatInvoiceCurrency(lineTotal);
     });
 
-    const vat = invoiceVat.checked ? subtotal * 0.15 : 0;
+    const discountPercent = Number(invoiceDiscount.value) || 0;
+    const discountAmount = roundInvoiceCurrency(subtotal * discountPercent / 100);
+    const discountedSubtotal = roundInvoiceCurrency(subtotal - discountAmount);
+    const vat = invoiceVat.checked ? discountedSubtotal * 0.15 : 0;
     const roundedVat = roundInvoiceCurrency(vat);
     document.getElementById("invoiceSubtotal").textContent =
         formatInvoiceCurrency(subtotal);
+    document.getElementById("invoiceDiscountLabel").textContent =
+        `Discount (${discountPercent}%)`;
+    document.getElementById("invoiceDiscountAmount").textContent =
+        `-${formatInvoiceCurrency(discountAmount)}`;
+    document.getElementById("invoiceDiscountRow").hidden =
+        discountPercent === 0;
     document.getElementById("invoiceVatAmount").textContent =
         formatInvoiceCurrency(roundedVat);
     document.getElementById("invoiceTotal").textContent =
-        formatInvoiceCurrency(roundInvoiceCurrency(subtotal + roundedVat));
+        formatInvoiceCurrency(roundInvoiceCurrency(discountedSubtotal + roundedVat));
     document.getElementById("invoiceVatRow").hidden =
         !invoiceVat.checked;
 }
@@ -95,9 +106,12 @@ function bindInvoiceItem(row) {
 function normalizeInvoice(invoice) {
     let items = [];
     try {
-        items = invoice.itemsJson ? JSON.parse(invoice.itemsJson) : [];
+        const parsedItems = invoice.itemsJson
+            ? JSON.parse(invoice.itemsJson)
+            : invoice.items;
+        items = Array.isArray(parsedItems) ? parsedItems : [];
     } catch {
-        items = [];
+        items = Array.isArray(invoice.items) ? invoice.items : [];
     }
     return {
         ...invoice,
@@ -112,6 +126,8 @@ function normalizeInvoice(invoice) {
         notes: invoice.notes || defaultInvoiceNotes,
         items,
         subtotal: Number(invoice.subtotal ?? invoice.amount ?? invoice.total ?? 0),
+        discountPercent: Number(invoice.discountPercent ?? 0),
+        discountAmount: Number(invoice.discountAmount ?? 0),
         vatAmount: Number(invoice.vatAmount ?? 0),
         total: Number(invoice.amount ?? invoice.total ?? 0),
         status: normalizeInvoiceStatus(invoice.status)
@@ -137,6 +153,8 @@ function invoiceToApiPayload(invoice) {
         clientEmail: invoice.email,
         amount: Number(invoice.total) || 0,
         subtotal: Number(invoice.subtotal) || 0,
+        discountPercent: Number(invoice.discountPercent) || 0,
+        discountAmount: Number(invoice.discountAmount) || 0,
         vatAmount: Number(invoice.vatAmount) || 0,
         billingAddress: invoice.billingAddress || null,
         terms: invoice.terms || null,
@@ -170,9 +188,13 @@ async function loadInvoicesFromApi() {
         const items = Array.isArray(response) ? response : response?.items || [];
         invoiceCache = items.map(normalizeInvoice);
         renderSavedInvoices(invoiceCache);
-        const next = nextInvoiceNumber(invoiceCache, new Date().getFullYear());
-        const numberInput = document.getElementById("invoiceNumber");
-        if (numberInput && !numberInput.value) numberInput.value = next;
+        try {
+            await updateInvoiceNumber();
+        } catch (error) {
+            console.error("Unable to determine the next billing document number.", error);
+            invoiceRegisterMessage.textContent =
+                error.message || "The next invoice number could not be determined.";
+        }
         return invoiceCache.slice();
     } catch (error) {
         console.error("Unable to load invoices from API.", error);
@@ -182,14 +204,13 @@ async function loadInvoicesFromApi() {
     }
 }
 
-function nextInvoiceNumber(invoices, year) {
-    const sequence = invoices.reduce((highest, invoice) => {
-        const match = /^INV-(\d{4})-(\d+)$/.exec(invoice.number || "");
-        if (!match || Number(match[1]) !== year) return highest;
-        return Math.max(highest, Number(match[2]));
-    }, 0);
-
-    return `INV-${year}-${String(sequence + 1).padStart(4, "0")}`;
+async function updateInvoiceNumber() {
+    const nextNumber = await window.zymaBillingNumbering.next("INV");
+    const numberInput = document.getElementById("invoiceNumber");
+    if (!numberInput.value || numberInput.value === generatedInvoiceNumber) {
+        numberInput.value = nextNumber;
+        generatedInvoiceNumber = nextNumber;
+    }
 }
 
 function setDefaultInvoiceDates() {
@@ -642,7 +663,10 @@ async function createInvoicePdf(invoice) {
         90
     );
     const notesSpace = 17 + Math.max(0, notesLines.length - 1) * 11;
-    const totalsSpace = 148 + (invoice.vatAmount > 0 ? 24 : 0);
+    const totalsSpace =
+        148 +
+        (invoice.discountAmount > 0 ? 24 : 0) +
+        (invoice.vatAmount > 0 ? 24 : 0);
     if (y < 36 + notesSpace + totalsSpace) {
         pages.push(commands.join("\n"));
         startPage(false);
@@ -660,6 +684,17 @@ async function createInvoicePdf(invoice) {
         8
     );
     y = totalsTop - 31;
+
+    if (invoice.discountAmount > 0) {
+        addRightText(456, y, `Discount (${invoice.discountPercent}%)`, 8);
+        addRightText(
+            550,
+            y,
+            `-${formatInvoiceCurrency(invoice.discountAmount)}`,
+            8
+        );
+        y -= 24;
+    }
 
     if (invoice.vatAmount > 0) {
         addRightText(456, y, "VAT (15%)", 8);
@@ -844,12 +879,18 @@ invoiceTerms.addEventListener("change", updateInvoiceDueDate);
 
 invoiceItems.querySelectorAll(".invoice-item-row").forEach(bindInvoiceItem);
 invoiceVat.addEventListener("change", updateInvoiceTotals);
+invoiceDiscount.addEventListener("change", updateInvoiceTotals);
 setDefaultInvoiceDates();
 
 const currentInvoices = loadInvoices();
-document.getElementById("invoiceNumber").value = nextInvoiceNumber(currentInvoices, new Date().getFullYear());
+document.getElementById("invoiceNumber").value = "INV-1101";
 renderSavedInvoices(currentInvoices);
 updateInvoiceTotals();
+updateInvoiceNumber().catch(error => {
+    console.error("Unable to determine the next billing document number.", error);
+    invoiceRegisterMessage.textContent =
+        error.message || "The next invoice number could not be determined.";
+});
 if (invoiceApiEnabled) loadInvoicesFromApi();
 
 invoiceForm.addEventListener("submit", async event => {
@@ -858,6 +899,15 @@ invoiceForm.addEventListener("submit", async event => {
 
     if (!invoiceForm.checkValidity()) {
         invoiceForm.reportValidity();
+        return;
+    }
+
+    try {
+        await updateInvoiceNumber();
+    } catch (error) {
+        console.error("Unable to determine the next billing document number.", error);
+        invoiceFormMessage.textContent =
+            error.message || "The next invoice number could not be determined.";
         return;
     }
 
@@ -877,8 +927,11 @@ invoiceForm.addEventListener("submit", async event => {
     const subtotal = roundInvoiceCurrency(
         items.reduce((sum, item) => sum + item.total, 0)
     );
+    const discountPercent = Number(invoiceDiscount.value) || 0;
+    const discountAmount = roundInvoiceCurrency(subtotal * discountPercent / 100);
+    const discountedSubtotal = roundInvoiceCurrency(subtotal - discountAmount);
     const vatAmount = invoiceVat.checked
-        ? roundInvoiceCurrency(subtotal * 0.15)
+        ? roundInvoiceCurrency(discountedSubtotal * 0.15)
         : 0;
     const invoice = {
         number: document.getElementById("invoiceNumber").value.trim(),
@@ -892,8 +945,10 @@ invoiceForm.addEventListener("submit", async event => {
         notes: document.getElementById("invoiceNotes").value.trim(),
         items,
         subtotal,
+        discountPercent,
+        discountAmount,
         vatAmount,
-        total: subtotal + vatAmount,
+        total: discountedSubtotal + vatAmount,
         status: "draft",
         createdAt: new Date().toISOString()
     };
@@ -918,17 +973,22 @@ invoiceForm.addEventListener("submit", async event => {
             renderSavedInvoices(invoiceCache);
             window.dispatchEvent(new CustomEvent("zyma:billing-updated"));
             invoiceRegisterMessage.textContent = `${saved.number} created as a draft and shared with staff.`;
-            document.getElementById("invoiceNumber").value = nextInvoiceNumber(invoiceCache, new Date().getFullYear());
         } else {
             invoices.push(invoice);
             localStorage.setItem(invoiceStorageKey, JSON.stringify(invoices));
             renderSavedInvoices(invoices);
             invoiceRegisterMessage.textContent = `${invoice.number} created as a draft.`;
-            document.getElementById("invoiceNumber").value = nextInvoiceNumber(invoices, new Date().getFullYear());
         }
     } catch (error) {
         invoiceFormMessage.textContent = error.message || "Invoice could not be saved.";
         return;
+    }
+    try {
+        await updateInvoiceNumber();
+    } catch (error) {
+        console.error("Invoice was saved but the next number could not be loaded.", error);
+        invoiceRegisterMessage.textContent =
+            `${invoice.number} was created, but the next invoice number could not be loaded.`;
     }
     document.getElementById("invoiceClient").value = "";
     document.getElementById("invoiceEmail").value = "";
@@ -942,6 +1002,7 @@ invoiceForm.addEventListener("submit", async event => {
     );
     invoiceItems.querySelectorAll(".invoice-item-row").forEach(bindInvoiceItem);
     invoiceVat.checked = false;
+    invoiceDiscount.value = "0";
     updateInvoiceTotals();
 });
 

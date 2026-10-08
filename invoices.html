@@ -186,13 +186,25 @@ Thank you for your patronage!</textarea>
                 </div>
 
                 <div class="invoice-bottom-row">
-                    <label class="invoice-vat-option">
-                        <input id="invoiceVat" type="checkbox">
-                        <span>Add 15% VAT</span>
-                    </label>
+                    <div class="invoice-options">
+                        <label class="invoice-vat-option">
+                            <input id="invoiceVat" type="checkbox">
+                            <span>Add 15% VAT</span>
+                        </label>
+                        <div class="field invoice-discount-field">
+                            <label for="invoiceDiscount">Application discount</label>
+                            <select id="invoiceDiscount">
+                                <option value="0">No discount</option>
+                                <option value="30">30% discount</option>
+                                <option value="50">50% discount</option>
+                            </select>
+                            <small>Select the discount agreed for this application. VAT, if added, is calculated after the discount.</small>
+                        </div>
+                    </div>
 
                     <div class="invoice-totals" aria-live="polite">
                         <div><span>Subtotal</span><strong id="invoiceSubtotal">R0.00</strong></div>
+                        <div id="invoiceDiscountRow" hidden><span id="invoiceDiscountLabel">Discount</span><strong id="invoiceDiscountAmount">-R0.00</strong></div>
                         <div id="invoiceVatRow" hidden><span>VAT (15%)</span><strong id="invoiceVatAmount">R0.00</strong></div>
                         <div class="invoice-grand-total"><span>Total due</span><strong id="invoiceTotal">R0.00</strong></div>
                     </div>
@@ -240,6 +252,7 @@ Thank you for your patronage!</textarea>
     <script src="js/api.js?v=20261008-6"></script>
     <script src="js/auth.js?v=20261008-6"></script>
     <script src="js/session.js?v=20261008-6"></script>
-    <script src="js/invoices.js?v=20261008-5"></script>
+    <script src="js/billing-numbering.js?v=20261008-1"></script>
+    <script src="js/invoices.js?v=20261008-7"></script>
 </body>
 </html>

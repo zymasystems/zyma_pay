@@ -445,6 +445,8 @@ async function migrateLegacyBillingData() {
                     clientEmail: legacy.email || legacy.clientEmail || "",
                     amount: Number(legacy.total ?? legacy.amount ?? 0),
                     subtotal: Number(legacy.subtotal ?? legacy.total ?? legacy.amount ?? 0),
+                    discountPercent: Number(legacy.discountPercent ?? 0),
+                    discountAmount: Number(legacy.discountAmount ?? 0),
                     vatAmount: Number(legacy.vatAmount ?? 0),
                     billingAddress: legacy.billingAddress || null,
                     terms: legacy.terms || "Due on Receipt",

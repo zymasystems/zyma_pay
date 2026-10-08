@@ -1861,6 +1861,12 @@ select {
     margin-top: 24px;
 }
 
+.invoice-options {
+    display: grid;
+    gap: 18px;
+    width: min(100%, 300px);
+}
+
 .invoice-vat-option {
     display: inline-flex;
     align-items: center;
@@ -1872,6 +1878,14 @@ select {
 
 .invoice-vat-option input {
     accent-color: var(--orange-dark);
+}
+
+.invoice-discount-field small {
+    display: block;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.5;
 }
 
 .invoice-totals {

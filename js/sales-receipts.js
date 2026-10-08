@@ -17,6 +17,7 @@ const defaultReceiptNotes =
 let currentReceiptPdfUrl = "";
 let currentPreviewReceiptNumber = "";
 let receiptLogoPromise;
+let generatedReceiptNumber = "SR-1101";
 
 function formatReceiptCurrency(value) {
     return `R${Number(value).toLocaleString("en-US", {
@@ -227,8 +228,13 @@ async function loadReceiptsFromApi() {
         const items = Array.isArray(response) ? response : response?.items || [];
         receiptCache = items.map(normalizeReceipt);
         renderReceipts(receiptCache);
-        const numberInput = document.getElementById("receiptNumber");
-        if (numberInput && !numberInput.value) numberInput.value = nextReceiptNumber(receiptCache, new Date().getFullYear());
+        try {
+            await updateReceiptNumber();
+        } catch (error) {
+            console.error("Unable to determine the next billing document number.", error);
+            receiptRegisterMessage.textContent =
+                error.message || "The next sales receipt number could not be determined.";
+        }
         return receiptCache.slice();
     } catch (error) {
         console.error("Unable to load sales receipts from API.", error);
@@ -238,13 +244,13 @@ async function loadReceiptsFromApi() {
     }
 }
 
-function nextReceiptNumber(receipts, year) {
-    const sequence = receipts.reduce((highest, receipt) => {
-        const match = /^SR-(\d{4})-(\d+)$/.exec(receipt.number || "");
-        if (!match || Number(match[1]) !== year) return highest;
-        return Math.max(highest, Number(match[2]));
-    }, 0);
-    return `SR-${year}-${String(sequence + 1).padStart(4, "0")}`;
+async function updateReceiptNumber() {
+    const nextNumber = await window.zymaBillingNumbering.next("SR");
+    const numberInput = document.getElementById("receiptNumber");
+    if (!numberInput.value || numberInput.value === generatedReceiptNumber) {
+        numberInput.value = nextNumber;
+        generatedReceiptNumber = nextNumber;
+    }
 }
 
 function setDefaultReceiptDate() {
@@ -772,9 +778,14 @@ receiptItems.querySelectorAll(".invoice-item-row").forEach(bindReceiptItem);
 setDefaultReceiptDate();
 
 const initialReceipts = readReceipts();
-document.getElementById("receiptNumber").value = nextReceiptNumber(initialReceipts, new Date().getFullYear());
+document.getElementById("receiptNumber").value = "SR-1101";
 renderReceipts(initialReceipts);
 updateReceiptTotals();
+updateReceiptNumber().catch(error => {
+    console.error("Unable to determine the next billing document number.", error);
+    receiptRegisterMessage.textContent =
+        error.message || "The next sales receipt number could not be determined.";
+});
 if (receiptApiEnabled) loadReceiptsFromApi();
 
 receiptForm.addEventListener("submit", async event => {
@@ -782,6 +793,15 @@ receiptForm.addEventListener("submit", async event => {
     receiptFormMessage.textContent = "";
     if (!receiptForm.checkValidity()) {
         receiptForm.reportValidity();
+        return;
+    }
+
+    try {
+        await updateReceiptNumber();
+    } catch (error) {
+        console.error("Unable to determine the next billing document number.", error);
+        receiptFormMessage.textContent =
+            error.message || "The next sales receipt number could not be determined.";
         return;
     }
 
@@ -825,18 +845,24 @@ receiptForm.addEventListener("submit", async event => {
             receiptCache.unshift(saved);
             renderReceipts(receiptCache);
             receiptRegisterMessage.textContent = `${saved.number} created and shared with staff.`;
-            document.getElementById("receiptNumber").value = nextReceiptNumber(receiptCache, new Date().getFullYear());
             window.dispatchEvent(new CustomEvent("zyma:billing-updated"));
         } else {
             receipts.push(receipt);
             localStorage.setItem(receiptStorageKey, JSON.stringify(receipts));
             renderReceipts(receipts);
             receiptRegisterMessage.textContent = `${receipt.number} created.`;
-            document.getElementById("receiptNumber").value = nextReceiptNumber(receipts, new Date().getFullYear());
         }
     } catch (error) {
         receiptFormMessage.textContent = error.message || "Sales receipt could not be saved.";
         return;
+    }
+
+    try {
+        await updateReceiptNumber();
+    } catch (error) {
+        console.error("Sales receipt was saved but the next number could not be loaded.", error);
+        receiptRegisterMessage.textContent =
+            `${receipt.number} was created, but the next sales receipt number could not be loaded.`;
     }
 
     receiptFormPanel.hidden = true;

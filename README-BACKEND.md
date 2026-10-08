@@ -127,11 +127,15 @@ Invoices:
 - `PATCH /api/invoices/{id}`
 - `DELETE /api/invoices/{id}`
 
+Invoice records should persist and return `amount` as the final amount due, `subtotal` as the pre-discount amount, `discountPercent`, `discountAmount`, and `vatAmount`. Calculate VAT on the subtotal after discount. The frontend stores the original billable line items in `itemsJson`.
+
 Sales receipts:
 
 - `GET /api/sales-receipts`
 - `POST /api/sales-receipts`
 - `DELETE /api/sales-receipts/{id}`
+
+Invoice and sales receipt numbers share one increasing sequence, starting at `INV-1101` / `SR-1101`. The next suffix is one greater than the highest number across both record types, so an existing `SR-1102` means the next invoice and receipt are `INV-1103` and `SR-1103`.
 
 System:
 
