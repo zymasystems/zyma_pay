@@ -577,18 +577,34 @@ function resetPaymentForm() {
 
 async function submitPaymentToApi() {
     const submitButton = form?.querySelector('button[type="submit"]');
+    const documents = getPaymentDocuments();
+    const request = getPaymentRequest();
+
+    // The awaiting-reflection email requires a Proof of Payment.
+    // Validate this before creating the payment so we do not create a
+    // payment record that cannot complete its communication workflow.
+    if (request.status === 0 && !documents.some(document => document.type === 0)) {
+        showToast(
+            "Proof of Payment Required",
+            "Upload a Proof of Payment before sending the awaiting-reflection email."
+        );
+        document.getElementById("proofFile")?.focus();
+        return;
+    }
+
     if (submitButton) {
         submitButton.disabled = true;
         submitButton.dataset.originalText = submitButton.textContent;
-        submitButton.textContent = "Creating payment…";
+        submitButton.textContent = "Creating & sending…";
     }
 
-    try {
-        const payment = await window.zymaApi.createPayment(getPaymentRequest());
+    let payment = null;
 
-        // Documents are stored through the dedicated payment document endpoint
-        // after the payment record has been created.
-        const documents = getPaymentDocuments();
+    try {
+        payment = await window.zymaApi.createPayment(request);
+
+        // Store every selected document first. The email endpoint will then
+        // attach the stored documents to the outgoing client email.
         for (const document of documents) {
             await window.zymaApi.uploadPaymentDocument(
                 payment.id,
@@ -597,20 +613,33 @@ async function submitPaymentToApi() {
             );
         }
 
+        // Send the exact server-side email template for the selected
+        // payment status. The backend sends from payments@zyma.co.za.
+        await window.zymaApi.sendPaymentEmail(payment.id);
+
         resetPaymentForm();
         localStorage.removeItem("zymaPaymentDraft");
         await loadPaymentsFromApi();
         showPage("payments");
+
         showToast(
-            "Payment Created",
-            "The payment record and supporting documents were saved successfully."
+            "Payment Email Sent",
+            `Payment ${payment.invoiceNumber} was saved and the ${request.status === 1 ? "payment confirmation" : "Proof of Payment received"} email was sent to ${request.clientEmail}.`
         );
     } catch (error) {
-        console.error("Unable to create payment.", error);
-        showToast(
-            "Payment Not Created",
-            error.message || "The backend could not create this payment."
-        );
+        console.error("Unable to complete payment email workflow.", error);
+
+        if (payment?.id) {
+            showToast(
+                "Payment Created — Email Not Sent",
+                `${error.message || "Email delivery failed."} The payment was saved and was not deleted.`
+            );
+        } else {
+            showToast(
+                "Payment Not Created",
+                error.message || "The backend could not create this payment."
+            );
+        }
     } finally {
         if (submitButton) {
             submitButton.disabled = false;
@@ -1320,7 +1349,7 @@ if (form) {
 
 
         /*
-            BACKEND WILL EVENTUALLY RECEIVE:
+            API MODE SENDS THIS PAYMENT TO THE PRODUCTION BACKEND:
 
             POST /api/payments
 
