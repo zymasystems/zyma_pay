@@ -113,6 +113,15 @@ function normalizeInvoice(invoice) {
     } catch {
         items = Array.isArray(invoice.items) ? invoice.items : [];
     }
+    const subtotal = Number(invoice.subtotal ?? invoice.amount ?? invoice.total ?? 0);
+    const vatAmount = Number(invoice.vatAmount ?? 0);
+    const total = Number(invoice.amount ?? invoice.total ?? 0);
+    const discountPercent = Number(invoice.discountPercent ?? 0);
+    const discountAmount = Number(
+        invoice.discountAmount ??
+        (subtotal > 0 ? Math.max(0, roundInvoiceCurrency(subtotal + vatAmount - total)) : 0)
+    );
+
     return {
         ...invoice,
         id: invoice.id || invoice.Id,
@@ -125,11 +134,13 @@ function normalizeInvoice(invoice) {
         terms: invoice.terms || "Due on Receipt",
         notes: invoice.notes || defaultInvoiceNotes,
         items,
-        subtotal: Number(invoice.subtotal ?? invoice.amount ?? invoice.total ?? 0),
-        discountPercent: Number(invoice.discountPercent ?? 0),
-        discountAmount: Number(invoice.discountAmount ?? 0),
-        vatAmount: Number(invoice.vatAmount ?? 0),
-        total: Number(invoice.amount ?? invoice.total ?? 0),
+        subtotal,
+        discountPercent: discountPercent || (
+            subtotal > 0 ? roundInvoiceCurrency(discountAmount / subtotal * 100) : 0
+        ),
+        discountAmount,
+        vatAmount,
+        total,
         status: normalizeInvoiceStatus(invoice.status)
     };
 }
@@ -426,7 +437,7 @@ function pdfSafeText(value) {
     return String(value)
         .normalize("NFKD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^\x20-\x7e]/g, "?");
+        .replace(/[^\x20-\x7e\r\n]/g, "?");
 }
 
 function pdfEscape(value) {
