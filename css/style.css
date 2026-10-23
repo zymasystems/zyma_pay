@@ -5210,3 +5210,405 @@ button, a, .nav-item, .primary-button, .secondary-button, .icon-button, .theme-t
     margin-left: auto !important;
   }
 }
+
+
+/* =========================================================
+   ZYMA PAY — COMPLETE LIGHT / DARK SURFACE MAPPING
+   Final theme layer: every application surface, field, table,
+   and repeated row uses the active theme. Brand orange and
+   intentional email/document previews are preserved.
+========================================================= */
+
+/* Theme tokens are the single source of truth. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --surface-app: #f5f3ef;
+  --surface-panel: #ffffff;
+  --surface-raised: #faf9f7;
+  --surface-input: #ffffff;
+  --text-primary: #181818;
+  --text-secondary: #515b68;
+  --text-subtle: #687587;
+  --line: #e2ddd5;
+  --chart-grid: #e7e2da;
+  --chart-label: #596575;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-app: #0b0b0c;
+  --surface-panel: #151515;
+  --surface-raised: #1d1d1d;
+  --surface-input: #111315;
+  --text-primary: #f1f5f9;
+  --text-secondary: #b5c0ce;
+  --text-subtle: #8b98a8;
+  --line: #303030;
+  --chart-grid: #303030;
+  --chart-label: #b5c0ce;
+}
+
+/* Main application and standalone billing pages. */
+:root[data-theme="light"] html,
+:root[data-theme="light"] body,
+:root[data-theme="light"] .app,
+:root[data-theme="light"] .main,
+:root[data-theme="light"] .content,
+:root[data-theme="light"] .invoice-page,
+:root[data-theme="light"] .invoice-content {
+  background-color: var(--surface-app) !important;
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] html,
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .app,
+:root[data-theme="dark"] .main,
+:root[data-theme="dark"] .content,
+:root[data-theme="dark"] .invoice-page,
+:root[data-theme="dark"] .invoice-content {
+  background-color: var(--surface-app) !important;
+  color: var(--text-primary) !important;
+}
+
+/* All standard cards, panels, registers, form sections and rows. */
+:root[data-theme="light"] .panel,
+:root[data-theme="light"] .metric-card,
+:root[data-theme="light"] .form-panel,
+:root[data-theme="light"] .settings-card,
+:root[data-theme="light"] .settings-list,
+:root[data-theme="light"] .settings-list-row,
+:root[data-theme="light"] .staff-card,
+:root[data-theme="light"] .template-card,
+:root[data-theme="light"] .role-card,
+:root[data-theme="light"] .analytics-panel,
+:root[data-theme="light"] .table-wrap,
+:root[data-theme="light"] .data-table-wrap,
+:root[data-theme="light"] .invoice-register-panel,
+:root[data-theme="light"] .invoice-form-panel,
+:root[data-theme="light"] .saved-invoices-panel,
+:root[data-theme="light"] .invoice-summary-card,
+:root[data-theme="light"] .invoice-totals,
+:root[data-theme="light"] .receipt-card,
+:root[data-theme="light"] .billing-card,
+:root[data-theme="light"] .invoice-item-row,
+:root[data-theme="light"] .payment-empty-state,
+:root[data-theme="light"] .billing-list-empty,
+:root[data-theme="light"] .empty-state,
+:root[data-theme="light"] .empty-invoices,
+:root[data-theme="light"] .saved-invoice-row,
+:root[data-theme="light"] .receipt-register-row,
+:root[data-theme="light"] .payment-row,
+:root[data-theme="light"] .activity-row,
+:root[data-theme="light"] .staff-row,
+:root[data-theme="light"] .billing-action-row {
+  background-color: var(--surface-panel) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--line) !important;
+}
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .form-panel,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .settings-list,
+:root[data-theme="dark"] .settings-list-row,
+:root[data-theme="dark"] .staff-card,
+:root[data-theme="dark"] .template-card,
+:root[data-theme="dark"] .role-card,
+:root[data-theme="dark"] .analytics-panel,
+:root[data-theme="dark"] .table-wrap,
+:root[data-theme="dark"] .data-table-wrap,
+:root[data-theme="dark"] .invoice-register-panel,
+:root[data-theme="dark"] .invoice-form-panel,
+:root[data-theme="dark"] .saved-invoices-panel,
+:root[data-theme="dark"] .invoice-summary-card,
+:root[data-theme="dark"] .invoice-totals,
+:root[data-theme="dark"] .receipt-card,
+:root[data-theme="dark"] .billing-card,
+:root[data-theme="dark"] .invoice-item-row,
+:root[data-theme="dark"] .payment-empty-state,
+:root[data-theme="dark"] .billing-list-empty,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .empty-invoices,
+:root[data-theme="dark"] .saved-invoice-row,
+:root[data-theme="dark"] .receipt-register-row,
+:root[data-theme="dark"] .payment-row,
+:root[data-theme="dark"] .activity-row,
+:root[data-theme="dark"] .staff-row,
+:root[data-theme="dark"] .billing-action-row {
+  background-color: var(--surface-panel) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--line) !important;
+}
+
+/* Keep all text in ordinary UI surfaces tied to the active palette.
+   Orange brand labels/links, semantic statuses and email artwork are excluded. */
+:root[data-theme="light"] .page-heading h1,
+:root[data-theme="light"] .panel h2,
+:root[data-theme="light"] .panel h3,
+:root[data-theme="light"] .form-panel h2,
+:root[data-theme="light"] .form-panel h3,
+:root[data-theme="light"] .metric-value,
+:root[data-theme="light"] .metric-top,
+:root[data-theme="light"] .payment-row,
+:root[data-theme="light"] .payment-row td,
+:root[data-theme="light"] .payment-row strong,
+:root[data-theme="light"] .billing-action-main strong,
+:root[data-theme="light"] .billing-action-amount,
+:root[data-theme="light"] .settings-list-row strong,
+:root[data-theme="light"] .settings-list-row span,
+:root[data-theme="light"] .invoice-summary-card strong,
+:root[data-theme="light"] .invoice-item-total,
+:root[data-theme="light"] .invoice-item-total span,
+:root[data-theme="light"] .invoice-totals span,
+:root[data-theme="light"] .invoice-totals strong,
+:root[data-theme="light"] .empty-state strong,
+:root[data-theme="light"] .payment-empty-state strong,
+:root[data-theme="light"] .empty-state p,
+:root[data-theme="light"] .billing-list-empty,
+:root[data-theme="light"] .quick-info p,
+:root[data-theme="light"] .large-action strong,
+:root[data-theme="light"] .large-action small {
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .page-heading h1,
+:root[data-theme="dark"] .panel h2,
+:root[data-theme="dark"] .panel h3,
+:root[data-theme="dark"] .form-panel h2,
+:root[data-theme="dark"] .form-panel h3,
+:root[data-theme="dark"] .metric-value,
+:root[data-theme="dark"] .metric-top,
+:root[data-theme="dark"] .payment-row,
+:root[data-theme="dark"] .payment-row td,
+:root[data-theme="dark"] .payment-row strong,
+:root[data-theme="dark"] .billing-action-main strong,
+:root[data-theme="dark"] .billing-action-amount,
+:root[data-theme="dark"] .settings-list-row strong,
+:root[data-theme="dark"] .settings-list-row span,
+:root[data-theme="dark"] .invoice-summary-card strong,
+:root[data-theme="dark"] .invoice-item-total,
+:root[data-theme="dark"] .invoice-item-total span,
+:root[data-theme="dark"] .invoice-totals span,
+:root[data-theme="dark"] .invoice-totals strong,
+:root[data-theme="dark"] .empty-state strong,
+:root[data-theme="dark"] .payment-empty-state strong,
+:root[data-theme="dark"] .empty-state p,
+:root[data-theme="dark"] .billing-list-empty,
+:root[data-theme="dark"] .quick-info p,
+:root[data-theme="dark"] .large-action strong,
+:root[data-theme="dark"] .large-action small {
+  color: var(--text-primary) !important;
+}
+
+/* Secondary copy is readable but remains visually subordinate. */
+:root[data-theme="light"] .page-heading p,
+:root[data-theme="light"] .panel p,
+:root[data-theme="light"] .form-panel p,
+:root[data-theme="light"] .metric-change,
+:root[data-theme="light"] .muted,
+:root[data-theme="light"] .description,
+:root[data-theme="light"] .invoice-register-toolbar p,
+:root[data-theme="light"] .invoice-summary-card span,
+:root[data-theme="light"] .invoice-summary-card small,
+:root[data-theme="light"] .billing-action-main small,
+:root[data-theme="light"] .large-action small,
+:root[data-theme="light"] .quick-info p,
+:root[data-theme="light"] .chart-footnote,
+:root[data-theme="light"] .chart-label {
+  color: var(--text-secondary) !important;
+}
+:root[data-theme="dark"] .page-heading p,
+:root[data-theme="dark"] .panel p,
+:root[data-theme="dark"] .form-panel p,
+:root[data-theme="dark"] .metric-change,
+:root[data-theme="dark"] .muted,
+:root[data-theme="dark"] .description,
+:root[data-theme="dark"] .invoice-register-toolbar p,
+:root[data-theme="dark"] .invoice-summary-card span,
+:root[data-theme="dark"] .invoice-summary-card small,
+:root[data-theme="dark"] .billing-action-main small,
+:root[data-theme="dark"] .large-action small,
+:root[data-theme="dark"] .quick-info p,
+:root[data-theme="dark"] .chart-footnote,
+:root[data-theme="dark"] .chart-label {
+  color: var(--text-secondary) !important;
+}
+
+/* Input family: includes dynamically-added invoice line items, filters,
+   date/number inputs, selects, textareas and file-upload controls. */
+:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] .field input,
+:root[data-theme="light"] .field select,
+:root[data-theme="light"] .field textarea,
+:root[data-theme="light"] .invoice-item-row input,
+:root[data-theme="light"] .toolbar input,
+:root[data-theme="light"] .toolbar select,
+:root[data-theme="light"] .search-box input,
+:root[data-theme="light"] .invoice-register-toolbar input,
+:root[data-theme="light"] .invoice-register-toolbar select,
+:root[data-theme="light"] .invoice-register-filters input,
+:root[data-theme="light"] .invoice-register-filters select,
+:root[data-theme="light"] .settings-list input,
+:root[data-theme="light"] .settings-list select {
+  background-color: #ffffff !important;
+  color: #181818 !important;
+  border-color: #e2ddd5 !important;
+  caret-color: #181818;
+}
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .field input,
+:root[data-theme="dark"] .field select,
+:root[data-theme="dark"] .field textarea,
+:root[data-theme="dark"] .invoice-item-row input,
+:root[data-theme="dark"] .toolbar input,
+:root[data-theme="dark"] .toolbar select,
+:root[data-theme="dark"] .search-box input,
+:root[data-theme="dark"] .invoice-register-toolbar input,
+:root[data-theme="dark"] .invoice-register-toolbar select,
+:root[data-theme="dark"] .invoice-register-filters input,
+:root[data-theme="dark"] .invoice-register-filters select,
+:root[data-theme="dark"] .settings-list input,
+:root[data-theme="dark"] .settings-list select {
+  background-color: #111315 !important;
+  color: #f1f5f9 !important;
+  border-color: #303030 !important;
+  caret-color: #f1f5f9;
+}
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder { color: #687587 !important; opacity: 1; }
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder { color: #8b98a8 !important; opacity: 1; }
+:root[data-theme="light"] input:disabled,
+:root[data-theme="light"] select:disabled,
+:root[data-theme="light"] textarea:disabled { background: #f0eee9 !important; color: #687587 !important; }
+:root[data-theme="dark"] input:disabled,
+:root[data-theme="dark"] select:disabled,
+:root[data-theme="dark"] textarea:disabled { background: #191919 !important; color: #8b98a8 !important; }
+
+/* Table headers and table body: avoid white header strips in dark mode. */
+:root[data-theme="light"] .table-head,
+:root[data-theme="light"] .activity-head,
+:root[data-theme="light"] .staff-head,
+:root[data-theme="light"] .receipt-register-head,
+:root[data-theme="light"] .table-header,
+:root[data-theme="light"] .invoice-register-head,
+:root[data-theme="light"] .payment-table th,
+:root[data-theme="light"] table thead th {
+  background-color: #f0eee9 !important;
+  color: #515b68 !important;
+  border-color: var(--line) !important;
+}
+:root[data-theme="dark"] .table-head,
+:root[data-theme="dark"] .activity-head,
+:root[data-theme="dark"] .staff-head,
+:root[data-theme="dark"] .receipt-register-head,
+:root[data-theme="dark"] .table-header,
+:root[data-theme="dark"] .invoice-register-head,
+:root[data-theme="dark"] .payment-table th,
+:root[data-theme="dark"] table thead th {
+  background-color: #202020 !important;
+  color: #b5c0ce !important;
+  border-color: var(--line) !important;
+}
+:root[data-theme="light"] table tbody tr,
+:root[data-theme="light"] .payment-table tbody tr,
+:root[data-theme="light"] .invoice-register-row,
+:root[data-theme="light"] .receipt-register-row {
+  background-color: #ffffff !important;
+  color: #181818 !important;
+}
+:root[data-theme="dark"] table tbody tr,
+:root[data-theme="dark"] .payment-table tbody tr,
+:root[data-theme="dark"] .invoice-register-row,
+:root[data-theme="dark"] .receipt-register-row {
+  background-color: #151515 !important;
+  color: #f1f5f9 !important;
+}
+:root[data-theme="light"] table td,
+:root[data-theme="light"] .payment-table td,
+:root[data-theme="light"] .invoice-register-row td,
+:root[data-theme="light"] .receipt-register-row td { color: #181818 !important; border-color: var(--line) !important; }
+:root[data-theme="dark"] table td,
+:root[data-theme="dark"] .payment-table td,
+:root[data-theme="dark"] .invoice-register-row td,
+:root[data-theme="dark"] .receipt-register-row td { color: #f1f5f9 !important; border-color: var(--line) !important; }
+
+/* Navigation, system status and top bars. */
+:root[data-theme="light"] .sidebar,
+:root[data-theme="light"] .topbar,
+:root[data-theme="light"] .invoice-topbar {
+  background-color: #ffffff !important;
+  color: #181818 !important;
+  border-color: var(--line) !important;
+}
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] .invoice-topbar {
+  background-color: #111111 !important;
+  color: #f1f5f9 !important;
+  border-color: var(--line) !important;
+}
+:root[data-theme="light"] .system-status { background: #f8f7f4 !important; border-color: var(--line) !important; }
+:root[data-theme="dark"] .system-status { background: #171717 !important; border-color: var(--line) !important; }
+:root[data-theme="light"] .system-status strong,
+:root[data-theme="light"] .user-details strong,
+:root[data-theme="light"] .breadcrumb,
+:root[data-theme="light"] .breadcrumb strong { color: #181818 !important; }
+:root[data-theme="dark"] .system-status strong,
+:root[data-theme="dark"] .user-details strong,
+:root[data-theme="dark"] .breadcrumb,
+:root[data-theme="dark"] .breadcrumb strong { color: #f1f5f9 !important; }
+:root[data-theme="light"] .system-status small,
+:root[data-theme="light"] .user-details span { color: #687587 !important; }
+:root[data-theme="dark"] .system-status small,
+:root[data-theme="dark"] .user-details span { color: #b5c0ce !important; }
+
+/* Standard secondary controls. Primary/brand-orange controls are untouched. */
+:root[data-theme="light"] .secondary-button,
+:root[data-theme="light"] .icon-button,
+:root[data-theme="light"] .theme-toggle-button,
+:root[data-theme="light"] .invoice-logout,
+:root[data-theme="light"] .remove-invoice-item {
+  background-color: #faf9f7 !important;
+  color: #181818 !important;
+  border-color: var(--line) !important;
+}
+:root[data-theme="dark"] .secondary-button,
+:root[data-theme="dark"] .icon-button,
+:root[data-theme="dark"] .theme-toggle-button,
+:root[data-theme="dark"] .invoice-logout,
+:root[data-theme="dark"] .remove-invoice-item {
+  background-color: #1d1d1d !important;
+  color: #f1f5f9 !important;
+  border-color: var(--line) !important;
+}
+
+/* Orange brand accents stay orange in both themes. */
+.eyebrow, .text-button, .nav-item.active .nav-icon,
+.invoice-grand-total strong, .invoice-totals .invoice-grand-total strong,
+.upload-icon, .action-icon, .theme-toggle-button > span:first-child {
+  color: var(--orange);
+}
+:root[data-theme="light"] .eyebrow,
+:root[data-theme="light"] .text-button,
+:root[data-theme="light"] .nav-item.active .nav-icon,
+:root[data-theme="light"] .invoice-grand-total strong,
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .text-button,
+:root[data-theme="dark"] .nav-item.active .nav-icon,
+:root[data-theme="dark"] .invoice-grand-total strong { color: var(--orange) !important; }
+
+/* Keep actual email previews styled like emails, not like app controls. */
+.email-window,
+.email-preview-panel .email-body,
+.email-preview-body,
+.preview-body {
+  background-color: #ffffff;
+  color: #181818;
+}
+.email-window-header { background-color: #111111; color: #ffffff; }
+.email-meta { background-color: #202020; color: #ffffff; }
+.email-window-header *,
+.email-meta * { color: inherit; }
