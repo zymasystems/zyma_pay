@@ -1,2 +1,2 @@
-Zyma Pay frontend — CRM-aligned navigation and unified dark/light theme
-Version: 2026-10-23-2
+Zyma Pay frontend — CRM-aligned navigation, unified dark/light theme, interactive revenue analytics, receivables, cash-flow forecast, client revenue and CSV reporting
+Version: 2026-10-23-3

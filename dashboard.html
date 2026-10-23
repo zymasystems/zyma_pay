@@ -327,6 +327,52 @@
                         </section>
                     </div>
 
+                    <!-- FINANCIAL OPERATIONS: receivables, forecast, client revenue and reporting -->
+                    <div class="finance-insights-grid" aria-label="Financial operations insights">
+                        <section class="panel finance-insight-panel finance-outstanding-panel">
+                            <div class="panel-header finance-insight-heading">
+                                <div><span class="eyebrow">ACCOUNTS RECEIVABLE</span><h2>Outstanding payments</h2><p>Unpaid invoice balances after matching confirmed payments.</p></div>
+                                <span class="finance-count-pill" id="outstandingInvoiceCount">0 invoices</span>
+                            </div>
+                            <div class="finance-kpi-row"><strong id="outstandingTotalAmount">R0.00</strong><span id="outstandingTotalCaption">No outstanding balances</span></div>
+                            <div class="finance-table-wrap">
+                                <table class="finance-table"><thead><tr><th>Client / invoice</th><th>Due</th><th>Outstanding</th><th>Match status</th><th></th></tr></thead><tbody id="outstandingPaymentsRows"><tr><td colspan="5" class="finance-empty">Invoice balances will appear when billing records load.</td></tr></tbody></table>
+                            </div>
+                            <p class="finance-footnote">Draft invoices are excluded. Confirmed payments are matched using their invoice number; awaiting and cancelled payments do not reduce the balance.</p>
+                        </section>
+
+                        <section class="panel finance-insight-panel">
+                            <div class="panel-header finance-insight-heading">
+                                <div><span class="eyebrow">LIQUIDITY PLANNING</span><h2>Cash-flow forecast</h2><p>Expected receipts from issued invoices, not confirmed cash.</p></div>
+                                <label class="finance-period-select">Horizon <select id="cashflowHorizon" aria-label="Cash flow forecast horizon"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select></label>
+                            </div>
+                            <div class="forecast-total"><strong id="cashflowForecastTotal">R0.00</strong><span id="cashflowForecastCaption">Expected receipts in the next 30 days</span></div>
+                            <div class="forecast-breakdown"><div><span>Overdue</span><strong id="cashflowOverdueTotal">R0.00</strong></div><div><span>Due in horizon</span><strong id="cashflowDueTotal">R0.00</strong></div><div><span>Unscheduled</span><strong id="cashflowUnscheduledTotal">R0.00</strong></div></div>
+                            <div class="forecast-list" id="cashflowForecastRows"><p class="finance-empty">Forecast entries will appear when issued invoices load.</p></div>
+                            <p class="finance-footnote">Forecasts use remaining invoice balances and due dates. They are estimates and do not guarantee payment.</p>
+                        </section>
+
+                        <section class="panel finance-insight-panel">
+                            <div class="panel-header finance-insight-heading">
+                                <div><span class="eyebrow">CLIENT PERFORMANCE</span><h2>Revenue by client</h2><p>Confirmed payments grouped by client for the selected period.</p></div>
+                                <label class="finance-period-select">Period <select id="clientRevenuePeriod" aria-label="Client revenue period"><option value="monthly">This month</option><option value="quarterly">This quarter</option><option value="yearly">This year</option><option value="all">All time</option></select></label>
+                            </div>
+                            <div class="finance-kpi-row"><strong id="clientRevenueTotal">R0.00</strong><span id="clientRevenueCaption">Confirmed revenue</span></div>
+                            <div class="client-revenue-list" id="clientRevenueRows"><p class="finance-empty">Client revenue will appear when confirmed payments load.</p></div>
+                            <p class="finance-footnote">Only payments marked Paid are counted. This is recorded revenue, not invoice value or forecast cash.</p>
+                        </section>
+
+                        <section class="panel finance-insight-panel finance-tools-panel">
+                            <div class="panel-header finance-insight-heading"><div><span class="eyebrow">REPORTING & AUTOMATION</span><h2>Financial reports</h2><p>Export real records for reconciliation and review.</p></div></div>
+                            <label class="finance-export-label" for="financeExportPeriod">Report period</label>
+                            <select id="financeExportPeriod" class="finance-export-select"><option value="monthly">Current month</option><option value="quarterly">Current quarter</option><option value="yearly">Current year</option><option value="all">All recorded data</option></select>
+                            <button type="button" class="primary-button finance-export-button" id="exportFinancialReport">Download financial report (.csv)</button>
+                            <button type="button" class="secondary-button finance-export-button" id="exportOutstandingReport">Export outstanding invoices (.csv)</button>
+                            <div class="finance-matching-note"><strong>Invoice-to-payment matching</strong><p id="invoiceMatchingSummary">Matching status will update when invoice and payment records load.</p></div>
+                            <div class="finance-reminder-note"><span class="reminder-status-dot"></span><div><strong>Automated payment reminders</strong><p>Planned n8n integration. Reminders are not active yet.</p><span class="planned-tag">LOW PRIORITY · NOT CONNECTED</span></div></div>
+                        </section>
+                    </div>
+
                     <!-- DASHBOARD GRID -->
                     <div class="dashboard-grid">
 
@@ -1072,7 +1118,7 @@
     <script src="js/api.js?v=20261008-6"></script>
     <script src="js/auth.js?v=20261008-6"></script>
     <script src="js/session.js?v=20261008-6"></script>
-    <script src="js/app.js?v=20261023-1"></script>
+    <script src="js/app.js?v=20261023-3"></script>
 
     <script src="js/mobile-navigation.js"></script>
 </body>

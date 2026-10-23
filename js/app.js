@@ -481,6 +481,7 @@ function renderPaymentsFromApi(response) {
     }
 
     updatePaymentMetrics(payments, Array.isArray(response) ? null : response);
+    renderFinanceInsights(payments, latestFinanceInvoices);
     bindPaymentSearchEvents();
     filterPayments();
 }
@@ -502,15 +503,17 @@ async function loadPaymentsFromApi() {
 
 
 function normalizeDashboardInvoice(invoice) {
-    const status = String(invoice?.status ?? "Draft").toLowerCase();
+    const rawStatus = String(invoice?.status ?? "Draft").trim().toLowerCase().replace(/[_-]+/g, " ");
+    const status = rawStatus === "unpaid" || rawStatus === "awaiting payment" ? "sent" : rawStatus;
     return {
         id: invoice?.id,
         number: invoice?.invoiceNumber ?? invoice?.number ?? "",
-        client: invoice?.clientName ?? invoice?.client ?? "",
+        client: invoice?.clientName ?? invoice?.client ?? "Unknown client",
         email: invoice?.clientEmail ?? invoice?.email ?? "",
-        amount: Number(invoice?.amount ?? invoice?.total ?? 0) || 0,
-        dueDate: invoice?.dueDate ?? "",
-        status: status === "unpaid" || status === "awaiting payment" || status === "awaiting_payment" ? "sent" : status
+        amount: Number(invoice?.amount ?? invoice?.total ?? invoice?.totalAmount ?? 0) || 0,
+        dueDate: invoice?.dueDate ?? invoice?.due_date ?? "",
+        issueDate: invoice?.invoiceDate ?? invoice?.issueDate ?? invoice?.createdAt ?? "",
+        status
     };
 }
 
@@ -661,6 +664,9 @@ async function migrateLegacyBillingData() {
     }
 }
 
+let latestFinanceInvoices = [];
+let latestFinanceReceipts = [];
+
 async function loadBillingDashboard() {
     if (!isApiModeEnabled()) return;
     try {
@@ -668,12 +674,211 @@ async function loadBillingDashboard() {
             window.zymaApi.listInvoices(),
             window.zymaApi.listReceipts()
         ]);
-        renderReadyInvoices(Array.isArray(invoices) ? invoices : invoices?.items || []);
-        renderRecentReceipts(Array.isArray(receipts) ? receipts : receipts?.items || []);
+        latestFinanceInvoices = (Array.isArray(invoices) ? invoices : invoices?.items || []).map(normalizeDashboardInvoice);
+        latestFinanceReceipts = (Array.isArray(receipts) ? receipts : receipts?.items || []).map(normalizeDashboardReceipt);
+        renderReadyInvoices(latestFinanceInvoices);
+        renderRecentReceipts(latestFinanceReceipts);
+        renderFinanceInsights(latestChartPayments, latestFinanceInvoices);
     } catch (error) {
         console.error("Unable to load billing dashboard data.", error);
     }
 }
+
+function financeDate(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function financeDateOnly(value) {
+    const date = financeDate(value);
+    if (!date) return null;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function invoiceIsDraft(invoice) {
+    return ["draft", "cancelled", "canceled", "void"].includes(invoice.status);
+}
+
+function invoiceIsSettled(invoice, matchedPaid) {
+    return invoice.status === "paid" || invoice.status === "fully paid" || (invoice.amount > 0 && matchedPaid >= invoice.amount - 0.01);
+}
+
+function makeFinanceInvoiceRows(invoices, payments) {
+    const paidByInvoice = new Map();
+    const paymentCountByInvoice = new Map();
+    payments.filter(payment => payment.status === "paid").forEach(payment => {
+        const number = String(payment.invoiceNumber || "").trim().toLowerCase();
+        if (!number || number === "—") return;
+        paidByInvoice.set(number, (paidByInvoice.get(number) || 0) + (Number(payment.amount) || 0));
+        paymentCountByInvoice.set(number, (paymentCountByInvoice.get(number) || 0) + 1);
+    });
+    return invoices.map(invoice => {
+        const key = String(invoice.number || "").trim().toLowerCase();
+        const matchedPaid = paidByInvoice.get(key) || 0;
+        const settled = invoiceIsSettled(invoice, matchedPaid);
+        const balance = settled ? 0 : Math.max(0, invoice.amount - matchedPaid);
+        const due = financeDateOnly(invoice.dueDate);
+        const today = financeDateOnly(new Date());
+        const overdue = Boolean(balance > 0 && due && due < today);
+        return { ...invoice, matchedPaid, matchedCount: paymentCountByInvoice.get(key) || 0, balance, overdue, due };
+    });
+}
+
+function renderOutstandingPayments(invoiceRows) {
+    const tbody = document.getElementById("outstandingPaymentsRows");
+    const totalEl = document.getElementById("outstandingTotalAmount");
+    const captionEl = document.getElementById("outstandingTotalCaption");
+    const countEl = document.getElementById("outstandingInvoiceCount");
+    if (!tbody) return;
+    const outstanding = invoiceRows.filter(invoice => !invoiceIsDraft(invoice) && invoice.balance > 0.009)
+        .sort((a, b) => Number(b.overdue) - Number(a.overdue) || ((a.due?.getTime() ?? Infinity) - (b.due?.getTime() ?? Infinity)));
+    const total = outstanding.reduce((sum, invoice) => sum + invoice.balance, 0);
+    if (totalEl) totalEl.textContent = formatCurrency(total);
+    if (captionEl) captionEl.textContent = outstanding.length ? `${outstanding.filter(x => x.overdue).length} overdue · ${outstanding.length} balance${outstanding.length === 1 ? "" : "s"}` : "No outstanding balances";
+    if (countEl) countEl.textContent = `${outstanding.length} invoice${outstanding.length === 1 ? "" : "s"}`;
+    tbody.replaceChildren();
+    if (!outstanding.length) {
+        const row = document.createElement("tr"); const cell = document.createElement("td");
+        cell.colSpan = 5; cell.className = "finance-empty"; cell.textContent = invoiceRows.length ? "No issued invoices have an outstanding balance." : "Invoice balances will appear when billing records load.";
+        row.append(cell); tbody.append(row); return;
+    }
+    outstanding.slice(0, 8).forEach(invoice => {
+        const row = document.createElement("tr");
+        const clientCell = document.createElement("td"); const client = document.createElement("strong"); client.textContent = invoice.client;
+        const ref = document.createElement("small"); ref.textContent = `${invoice.number || "No invoice number"} · ${invoice.matchedCount ? `${formatCurrency(invoice.matchedPaid)} matched` : "No confirmed payment matched"}`;
+        clientCell.append(client, ref);
+        const dueCell = document.createElement("td"); dueCell.textContent = invoice.dueDate ? formatApiDate(invoice.dueDate) : "Not set";
+        const balanceCell = document.createElement("td"); balanceCell.className = "finance-balance"; balanceCell.textContent = formatCurrency(invoice.balance);
+        const statusCell = document.createElement("td"); const badge = document.createElement("span");
+        badge.className = `finance-status ${invoice.overdue ? "overdue" : invoice.matchedPaid > 0 ? "partial" : "unpaid"}`;
+        badge.textContent = invoice.overdue ? "Overdue" : invoice.matchedPaid > 0 ? "Part-paid" : "Unpaid"; statusCell.append(badge);
+        const actionCell = document.createElement("td"); const button = document.createElement("button"); button.type = "button"; button.className = "finance-table-action"; button.textContent = "Record payment";
+        button.addEventListener("click", () => openPaymentForInvoice(invoice)); actionCell.append(button);
+        row.append(clientCell, dueCell, balanceCell, statusCell, actionCell); tbody.append(row);
+    });
+}
+
+function renderCashflow(invoiceRows) {
+    const horizonControl = document.getElementById("cashflowHorizon");
+    const days = Number(horizonControl?.value || 30);
+    const today = financeDateOnly(new Date());
+    const horizon = new Date(today); horizon.setDate(horizon.getDate() + days);
+    const open = invoiceRows.filter(invoice => !invoiceIsDraft(invoice) && invoice.balance > 0.009);
+    const overdue = open.filter(invoice => invoice.overdue);
+    const dueInHorizon = open.filter(invoice => invoice.due && invoice.due >= today && invoice.due <= horizon);
+    const unscheduled = open.filter(invoice => !invoice.due);
+    const expected = dueInHorizon.reduce((sum, x) => sum + x.balance, 0);
+    const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    setText("cashflowForecastTotal", formatCurrency(expected));
+    setText("cashflowForecastCaption", `Expected receipts due in the next ${days} days`);
+    setText("cashflowOverdueTotal", formatCurrency(overdue.reduce((sum, x) => sum + x.balance, 0)));
+    setText("cashflowDueTotal", formatCurrency(expected));
+    setText("cashflowUnscheduledTotal", formatCurrency(unscheduled.reduce((sum, x) => sum + x.balance, 0)));
+    const container = document.getElementById("cashflowForecastRows"); if (!container) return;
+    container.replaceChildren();
+    const list = [...dueInHorizon].sort((a,b) => a.due - b.due).slice(0, 5);
+    if (!list.length) { const empty = document.createElement("p"); empty.className = "finance-empty"; empty.textContent = open.length ? `No outstanding invoices are due within ${days} days.` : "Issued invoice due dates will appear here."; container.append(empty); return; }
+    list.forEach(invoice => { const row = document.createElement("div"); row.className = "forecast-row"; const main = document.createElement("div"); const title = document.createElement("strong"); title.textContent = invoice.client; const meta = document.createElement("small"); meta.textContent = `${invoice.number} · Due ${formatApiDate(invoice.dueDate)}`; main.append(title,meta); const amount = document.createElement("span"); amount.textContent = formatCurrency(invoice.balance); row.append(main,amount); container.append(row); });
+}
+
+function getClientRevenuePeriodRange(period) {
+    const now = new Date(); const start = new Date(now.getFullYear(), 0, 1); let end = new Date(now.getFullYear() + 1, 0, 1);
+    if (period === "monthly") { start.setFullYear(now.getFullYear(), now.getMonth(), 1); end = new Date(now.getFullYear(), now.getMonth() + 1, 1); }
+    if (period === "quarterly") { const qStart = Math.floor(now.getMonth() / 3) * 3; start.setFullYear(now.getFullYear(), qStart, 1); end = new Date(now.getFullYear(), qStart + 3, 1); }
+    return { start, end };
+}
+
+function renderClientRevenue(payments) {
+    const period = document.getElementById("clientRevenuePeriod")?.value || "monthly";
+    const range = getClientRevenuePeriodRange(period);
+    const confirmed = payments.filter(payment => {
+        if (payment.status !== "paid") return false;
+        if (period === "all") return true;
+        const date = financeDate(payment.paymentDate || payment.createdAt);
+        return date && date >= range.start && date < range.end;
+    });
+    const byClient = new Map();
+    confirmed.forEach(payment => { const name = String(payment.clientName || "Unknown client").trim() || "Unknown client"; const item = byClient.get(name) || { name, amount: 0, count: 0 }; item.amount += Number(payment.amount) || 0; item.count += 1; byClient.set(name,item); });
+    const rows = [...byClient.values()].sort((a,b) => b.amount-a.amount);
+    const total = rows.reduce((sum, row) => sum + row.amount, 0);
+    const totalEl = document.getElementById("clientRevenueTotal"); if (totalEl) totalEl.textContent = formatCurrency(total);
+    const caption = document.getElementById("clientRevenueCaption"); if (caption) caption.textContent = `${confirmed.length} confirmed payment${confirmed.length === 1 ? "" : "s"} · ${period === "all" ? "all time" : period === "monthly" ? "this month" : period === "quarterly" ? "this quarter" : "this year"}`;
+    const container = document.getElementById("clientRevenueRows"); if (!container) return; container.replaceChildren();
+    if (!rows.length) { const empty = document.createElement("p"); empty.className = "finance-empty"; empty.textContent = "No confirmed revenue for this period."; container.append(empty); return; }
+    const max = Math.max(...rows.map(row => row.amount), 1);
+    rows.slice(0,6).forEach(item => { const row = document.createElement("div"); row.className = "client-revenue-row"; const avatar = document.createElement("span"); avatar.className = "client-revenue-avatar"; avatar.textContent = initialsForClient(item.name); const main = document.createElement("div"); const name = document.createElement("strong"); name.textContent = item.name; const meta = document.createElement("small"); meta.textContent = `${item.count} confirmed payment${item.count === 1 ? "" : "s"}`; const meter = document.createElement("div"); meter.className = "client-revenue-meter"; const fill = document.createElement("span"); fill.style.width = `${Math.max(2, item.amount / max * 100)}%`; meter.append(fill); main.append(name,meta,meter); const amount = document.createElement("strong"); amount.textContent = formatCurrency(item.amount); row.append(avatar,main,amount); container.append(row); });
+}
+
+function renderInvoiceMatchingSummary(invoiceRows, payments) {
+    const el = document.getElementById("invoiceMatchingSummary"); if (!el) return;
+    const issued = invoiceRows.filter(invoice => !invoiceIsDraft(invoice));
+    const paymentRefs = new Set(payments.filter(payment => payment.status === "paid" && payment.invoiceNumber && payment.invoiceNumber !== "—").map(payment => String(payment.invoiceNumber).trim().toLowerCase()));
+    const matched = issued.filter(invoice => paymentRefs.has(String(invoice.number).trim().toLowerCase())).length;
+    const unmatchedPayments = payments.filter(payment => payment.status === "paid" && payment.invoiceNumber && payment.invoiceNumber !== "—" && !issued.some(invoice => String(invoice.number).trim().toLowerCase() === String(payment.invoiceNumber).trim().toLowerCase())).length;
+    el.textContent = `${matched} of ${issued.length} issued invoice${issued.length === 1 ? "" : "s"} have a confirmed payment reference. ${unmatchedPayments} confirmed payment${unmatchedPayments === 1 ? " has" : "s have"} a reference that does not match an issued invoice.`;
+}
+
+function renderFinanceInsights(payments, invoices) {
+    const normalizedPayments = (Array.isArray(payments) ? payments : []).map(payment => payment?.clientName !== undefined ? payment : normalizePayment(payment));
+    const normalizedInvoices = (Array.isArray(invoices) ? invoices : []).map(invoice => invoice?.number !== undefined ? invoice : normalizeDashboardInvoice(invoice));
+    const invoiceRows = makeFinanceInvoiceRows(normalizedInvoices, normalizedPayments);
+    renderOutstandingPayments(invoiceRows);
+    renderCashflow(invoiceRows);
+    renderClientRevenue(normalizedPayments);
+    renderInvoiceMatchingSummary(invoiceRows, normalizedPayments);
+}
+
+function csvEscape(value) {
+    const text = value == null ? "" : String(value);
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadCsv(filename, rows) {
+    const csv = rows.map(row => row.map(csvEscape).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob); const link = document.createElement("a");
+    link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+}
+
+function reportPeriodMatches(value, period) {
+    if (period === "all") return true;
+    const date = financeDate(value); if (!date) return false;
+    const now = new Date();
+    if (period === "monthly") return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+    if (period === "quarterly") return date.getFullYear() === now.getFullYear() && Math.floor(date.getMonth()/3) === Math.floor(now.getMonth()/3);
+    return date.getFullYear() === now.getFullYear();
+}
+
+function exportFinancialReport() {
+    const period = document.getElementById("financeExportPeriod")?.value || "monthly";
+    const rows = [["Record type","Date","Client","Invoice number","Receipt number","Amount (ZAR)","Status","Payment type","Due date","Matched confirmed amount","Outstanding balance"]];
+    latestChartPayments.filter(payment => reportPeriodMatches(payment.paymentDate || payment.createdAt, period)).forEach(payment => {
+        const invoice = makeFinanceInvoiceRows(latestFinanceInvoices, latestChartPayments).find(item => String(item.number).toLowerCase() === String(payment.invoiceNumber).toLowerCase());
+        rows.push(["Payment", payment.paymentDate || payment.createdAt, payment.clientName, payment.invoiceNumber, payment.receiptNumber, Number(payment.amount || 0).toFixed(2), payment.status, payment.paymentType, invoice?.dueDate || "", invoice?.matchedPaid?.toFixed(2) || "0.00", invoice?.balance?.toFixed(2) || ""]);
+    });
+    latestFinanceInvoices.filter(invoice => reportPeriodMatches(invoice.issueDate || invoice.dueDate, period)).forEach(invoice => {
+        const matched = makeFinanceInvoiceRows([invoice], latestChartPayments)[0];
+        rows.push(["Invoice", invoice.issueDate, invoice.client, invoice.number, "", invoice.amount.toFixed(2), invoice.status, "", invoice.dueDate, (matched?.matchedPaid || 0).toFixed(2), (matched?.balance || 0).toFixed(2)]);
+    });
+    if (rows.length === 1) { showToast("No report data", "No financial records are available for the selected period."); return; }
+    downloadCsv(`zyma-pay-financial-report-${period}-${new Date().toISOString().slice(0,10)}.csv`, rows);
+}
+
+function exportOutstandingReport() {
+    const outstanding = makeFinanceInvoiceRows(latestFinanceInvoices, latestChartPayments).filter(invoice => !invoiceIsDraft(invoice) && invoice.balance > 0.009);
+    const rows = [["Client","Client email","Invoice number","Invoice status","Issue date","Due date","Invoice amount (ZAR)","Confirmed payments matched (ZAR)","Outstanding balance (ZAR)","Overdue"]];
+    outstanding.forEach(invoice => rows.push([invoice.client, invoice.email, invoice.number, invoice.status, invoice.issueDate, invoice.dueDate, invoice.amount.toFixed(2), invoice.matchedPaid.toFixed(2), invoice.balance.toFixed(2), invoice.overdue ? "Yes" : "No"]));
+    if (!outstanding.length) { showToast("No outstanding invoices", "There are no outstanding issued invoices to export."); return; }
+    downloadCsv(`zyma-pay-outstanding-invoices-${new Date().toISOString().slice(0,10)}.csv`, rows);
+}
+
+const cashflowHorizonControl = document.getElementById("cashflowHorizon");
+if (cashflowHorizonControl) cashflowHorizonControl.addEventListener("change", () => renderFinanceInsights(latestChartPayments, latestFinanceInvoices));
+const clientRevenuePeriodControl = document.getElementById("clientRevenuePeriod");
+if (clientRevenuePeriodControl) clientRevenuePeriodControl.addEventListener("change", () => renderClientRevenue(latestChartPayments));
+document.getElementById("exportFinancialReport")?.addEventListener("click", exportFinancialReport);
+document.getElementById("exportOutstandingReport")?.addEventListener("click", exportOutstandingReport);
 
 function openPaymentForInvoice(invoice) {
     if (typeof showPage === "function") showPage("new-payment");
