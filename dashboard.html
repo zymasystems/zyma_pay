@@ -276,20 +276,34 @@
                     <div class="analytics-grid" aria-label="Payment analytics">
                         <section class="panel analytics-panel">
                             <div class="panel-header analytics-heading">
-                                <div><span class="eyebrow">PAYMENT MOMENTUM</span><h2>Received over time</h2><p>Confirmed payments grouped by month</p></div>
-                                <span class="chart-live-label"><i></i> LIVE DATA</span>
+                                <div><span class="eyebrow">PAYMENT MOMENTUM</span><h2>Revenue received over time</h2><p id="revenueChartDescription">Total value of confirmed payments, grouped by month.</p></div>
+                                <div class="chart-header-actions">
+                                    <label class="chart-period-control" for="revenueChartPeriod">View by
+                                        <select id="revenueChartPeriod" aria-label="Group revenue chart by period">
+                                            <option value="monthly">Monthly</option>
+                                            <option value="quarterly">Quarterly</option>
+                                        </select>
+                                    </label>
+                                    <span class="chart-live-label"><i></i> LIVE DATA</span>
+                                </div>
                             </div>
                             <div class="chart-summary"><strong id="chartRevenueTotal">R0.00</strong><span id="chartRevenueCaption">No confirmed payments recorded yet</span></div>
                             <div class="chart-canvas line-chart-wrap">
-                                <svg id="revenueChart" viewBox="0 0 640 230" role="img" aria-label="Line chart of confirmed payments by month" preserveAspectRatio="none">
+                                <svg id="revenueChart" viewBox="0 0 640 230" role="group" aria-label="Interactive line chart of confirmed payment revenue" preserveAspectRatio="none">
                                     <defs><linearGradient id="revenueFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#f58220" stop-opacity=".30"/><stop offset="100%" stop-color="#f58220" stop-opacity="0"/></linearGradient></defs>
                                     <g class="chart-grid-lines"><path d="M44 24H620 M44 68H620 M44 112H620 M44 156H620 M44 200H620"/></g>
+                                    <g class="chart-y-labels" id="revenueYLabels" aria-hidden="true"></g>
                                     <path class="chart-area" id="revenueArea" d="M44 200 L620 200"/>
                                     <path class="chart-line" id="revenueLine" d="M44 200 L620 200"/>
                                     <g id="revenuePoints"></g><g id="revenueLabels"></g>
                                 </svg>
                             </div>
-                            <div class="chart-footnote" id="revenueChartNote">The chart will build as confirmed payment history accumulates.</div>
+                            <div class="chart-point-detail" id="revenuePointDetail" aria-live="polite">
+                                <span class="chart-detail-kicker">SELECT A POINT</span>
+                                <strong id="revenuePointAmount">Choose a point on the graph</strong>
+                                <span id="revenuePointPeriod">Click or focus a plotted point to see the amount received in that period.</span>
+                            </div>
+                            <div class="chart-footnote" id="revenueChartNote">This chart shows the total value of confirmed payments by period. Select a point to inspect that period's revenue and payment count. Only recorded payment data is used.</div>
                         </section>
                         <section class="panel analytics-panel status-analytics-panel">
                             <div class="panel-header analytics-heading"><div><span class="eyebrow">TRANSACTION HEALTH</span><h2>Payment status</h2><p>Current recorded payment mix</p></div></div>

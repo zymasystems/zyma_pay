@@ -266,55 +266,152 @@ function updatePaymentMetrics(payments, summary = null) {
     renderPaymentCharts(normalized);
 }
 
+function formatCompactCurrency(value) {
+    const amount = Number(value) || 0;
+    if (amount >= 1000000) return `R${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1)}m`;
+    if (amount >= 1000) return `R${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1)}k`;
+    return `R${Math.round(amount)}`;
+}
+
+let latestChartPayments = [];
+
 function renderPaymentCharts(payments) {
+    latestChartPayments = Array.isArray(payments) ? payments : [];
     const line = document.getElementById("revenueLine");
     const area = document.getElementById("revenueArea");
     const pointsGroup = document.getElementById("revenuePoints");
     const labelsGroup = document.getElementById("revenueLabels");
     if (!line || !area || !pointsGroup || !labelsGroup) return;
 
-    const confirmed = payments.filter(payment => payment.status === "paid");
-    const monthly = new Map();
+    const confirmed = latestChartPayments.filter(payment => payment.status === "paid");
+    const periodControl = document.getElementById("revenueChartPeriod");
+    const monthlyMode = !periodControl || periodControl.value !== "quarterly";
+    const buckets = new Map();
+
     confirmed.forEach(payment => {
         const rawDate = payment.paymentDate || payment.createdAt;
         const date = rawDate ? new Date(rawDate) : null;
         if (!date || Number.isNaN(date.getTime())) return;
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-        monthly.set(key, (monthly.get(key) || 0) + payment.amount);
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const quarter = Math.floor(month / 3) + 1;
+        const key = monthlyMode ? `${year}-${String(month + 1).padStart(2, "0")}` : `${year}-Q${quarter}`;
+        const label = monthlyMode
+            ? new Intl.DateTimeFormat("en-ZA", { month: "long", year: "numeric" }).format(new Date(year, month, 1))
+            : `Q${quarter} ${year}`;
+        const bucket = buckets.get(key) || { key, label, value: 0, count: 0 };
+        bucket.value += Number(payment.amount) || 0;
+        bucket.count += 1;
+        buckets.set(key, bucket);
     });
-    const entries = [...monthly.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
-    const total = confirmed.reduce((sum, payment) => sum + payment.amount, 0);
+
+    const entries = [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key)).slice(-6);
+    const periodTotal = entries.reduce((sum, item) => sum + item.value, 0);
+    const periodCount = entries.reduce((sum, item) => sum + item.count, 0);
     const totalEl = document.getElementById("chartRevenueTotal");
     const caption = document.getElementById("chartRevenueCaption");
     const note = document.getElementById("revenueChartNote");
-    if (totalEl) totalEl.textContent = formatCurrency(total);
-    if (caption) caption.textContent = `${confirmed.length} confirmed payment${confirmed.length === 1 ? "" : "s"} recorded`;
-    if (note) note.textContent = entries.length ? "Only months with recorded confirmed payments are shown; no historical values are estimated." : "Record and confirm payments to reveal the monthly trend.";
+    const description = document.getElementById("revenueChartDescription");
+    if (totalEl) totalEl.textContent = formatCurrency(periodTotal);
+    if (caption) caption.textContent = `${periodCount} confirmed payment${periodCount === 1 ? "" : "s"} across ${entries.length} displayed ${monthlyMode ? "month" : "quarter"}${entries.length === 1 ? "" : "s"}`;
+    if (description) description.textContent = monthlyMode
+        ? "Total value of confirmed payments, grouped by calendar month."
+        : "Total value of confirmed payments, grouped by calendar quarter (Q1–Q4).";
+    if (note) note.textContent = entries.length
+        ? `Each point represents the total confirmed payment value for one ${monthlyMode ? "calendar month" : "calendar quarter"}. Select a point to see its amount and number of payments. Only recorded payments are included; no historical values are estimated.`
+        : `No confirmed payments are available for this ${monthlyMode ? "monthly" : "quarterly"} view yet. Once payments are confirmed, each point will show the total received in that period.`;
 
     const xStart = 48, xEnd = 616, yTop = 24, yBottom = 194;
-    const max = Math.max(1, ...entries.map(item => item[1]));
+    const max = Math.max(1, ...entries.map(item => item.value));
     const coords = entries.map((item, index) => ({
         x: entries.length === 1 ? (xStart + xEnd) / 2 : xStart + (xEnd - xStart) * index / (entries.length - 1),
-        y: yBottom - (item[1] / max) * (yBottom - yTop),
-        key: item[0], value: item[1]
+        y: yBottom - (item.value / max) * (yBottom - yTop),
+        key: item.key, label: item.label, value: item.value, count: item.count
     }));
     const linePath = coords.length ? coords.map((point, i) => `${i ? "L" : "M"}${point.x} ${point.y}`).join(" ") : `M${xStart} ${yBottom} L${xEnd} ${yBottom}`;
     line.setAttribute("d", linePath);
     area.setAttribute("d", coords.length ? `${linePath} L${coords[coords.length - 1].x} ${yBottom} L${coords[0].x} ${yBottom} Z` : `M${xStart} ${yBottom} L${xEnd} ${yBottom} Z`);
-    pointsGroup.replaceChildren(); labelsGroup.replaceChildren();
+    pointsGroup.replaceChildren();
+    labelsGroup.replaceChildren();
+
+    const yLabels = document.getElementById("revenueYLabels");
+    if (yLabels) {
+        yLabels.replaceChildren();
+        [1, 0.75, 0.5, 0.25, 0].forEach((fraction, index) => {
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            label.setAttribute("x", "40");
+            label.setAttribute("y", String(yTop + (yBottom - yTop) * index / 4 + 3));
+            label.setAttribute("text-anchor", "end");
+            label.setAttribute("class", "chart-axis-label chart-y-axis-label");
+            label.textContent = formatCompactCurrency(max * fraction);
+            yLabels.append(label);
+        });
+    }
+
     const ns = "http://www.w3.org/2000/svg";
+    const detailAmount = document.getElementById("revenuePointAmount");
+    const detailPeriod = document.getElementById("revenuePointPeriod");
+    const detail = document.getElementById("revenuePointDetail");
+    const selectPoint = point => {
+        if (detailAmount) detailAmount.textContent = formatCurrency(point.value);
+        if (detailPeriod) detailPeriod.textContent = `${point.label} · ${point.count} confirmed payment${point.count === 1 ? "" : "s"} · Total received in this period`;
+        if (detail) detail.classList.add("has-selection");
+        pointsGroup.querySelectorAll(".chart-point").forEach(node => {
+            const selected = node.getAttribute("data-key") === point.key;
+            node.classList.toggle("is-selected", selected);
+            node.setAttribute("aria-pressed", selected ? "true" : "false");
+        });
+    };
+
     coords.forEach(point => {
         const circle = document.createElementNS(ns, "circle");
-        circle.setAttribute("cx", point.x); circle.setAttribute("cy", point.y); circle.setAttribute("r", "4.5"); circle.setAttribute("class", "chart-point");
-        const title = document.createElementNS(ns, "title"); title.textContent = `${point.key}: ${formatCurrency(point.value)}`; circle.append(title); pointsGroup.append(circle);
-        const label = document.createElementNS(ns, "text"); label.setAttribute("x", point.x); label.setAttribute("y", "220"); label.setAttribute("text-anchor", "middle"); label.setAttribute("class", "chart-axis-label");
-        const [year, month] = point.key.split("-"); label.textContent = new Intl.DateTimeFormat("en-ZA", { month: "short" }).format(new Date(Number(year), Number(month) - 1, 1)); labelsGroup.append(label);
+        circle.setAttribute("cx", point.x);
+        circle.setAttribute("cy", point.y);
+        circle.setAttribute("r", "5");
+        circle.setAttribute("class", "chart-point");
+        circle.setAttribute("tabindex", "0");
+        circle.setAttribute("role", "button");
+        circle.setAttribute("data-key", point.key);
+        circle.setAttribute("aria-label", `${point.label}: ${formatCurrency(point.value)} from ${point.count} confirmed payment${point.count === 1 ? "" : "s"}`);
+        circle.setAttribute("aria-pressed", "false");
+        const title = document.createElementNS(ns, "title");
+        title.textContent = `${point.label}: ${formatCurrency(point.value)} (${point.count} confirmed payment${point.count === 1 ? "" : "s"}). Select to view details.`;
+        circle.append(title);
+        circle.addEventListener("click", () => selectPoint(point));
+        circle.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                selectPoint(point);
+            }
+        });
+        circle.addEventListener("focus", () => selectPoint(point));
+        pointsGroup.append(circle);
+
+        const label = document.createElementNS(ns, "text");
+        label.setAttribute("x", point.x);
+        label.setAttribute("y", "220");
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("class", "chart-axis-label");
+        label.textContent = monthlyMode ? point.label.split(" ")[0].slice(0, 3) : point.label.replace(" ", "");
+        labelsGroup.append(label);
     });
+
+    if (coords.length) {
+        selectPoint(coords[coords.length - 1]);
+    } else {
+        if (detailAmount) detailAmount.textContent = "No period selected";
+        if (detailPeriod) detailPeriod.textContent = "Confirmed payments will appear here when recorded.";
+        if (detail) detail.classList.remove("has-selection");
+    }
+
     const length = line.getTotalLength ? line.getTotalLength() : 700;
-    line.style.strokeDasharray = `${length}`; line.style.strokeDashoffset = `${length}`;
-    area.classList.remove("chart-area-animate"); line.classList.remove("chart-line-animate");
+    line.style.strokeDasharray = `${length}`;
+    line.style.strokeDashoffset = `${length}`;
+    area.classList.remove("chart-area-animate");
+    line.classList.remove("chart-line-animate");
     void line.getBoundingClientRect();
-    area.classList.add("chart-area-animate"); line.classList.add("chart-line-animate");
+    area.classList.add("chart-area-animate");
+    line.classList.add("chart-line-animate");
 
     const statuses = {
         paid: payments.filter(p => p.status === "paid").length,
@@ -336,6 +433,11 @@ function renderPaymentCharts(payments) {
     setText("chartStatusTotal", count); setText("chartPaidCount", statuses.paid); setText("chartAwaitingCount", statuses.awaiting); setText("chartCancelledCount", statuses.cancelled);
     const statusNote = document.getElementById("statusChartNote");
     if (statusNote) statusNote.textContent = count ? `${Math.round(statuses.paid / count * 100)}% of recorded payments are confirmed.` : "Status distribution will appear when payment records load.";
+}
+
+const revenuePeriodControl = document.getElementById("revenueChartPeriod");
+if (revenuePeriodControl) {
+    revenuePeriodControl.addEventListener("change", () => renderPaymentCharts(latestChartPayments));
 }
 
 function renderPaymentsFromApi(response) {

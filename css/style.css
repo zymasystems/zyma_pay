@@ -5612,3 +5612,22 @@ button, a, .nav-item, .primary-button, .secondary-button, .icon-button, .theme-t
 .email-meta { background-color: #202020; color: #ffffff; }
 .email-window-header *,
 .email-meta * { color: inherit; }
+
+
+
+/* Interactive revenue chart: monthly / quarterly controls and point details. */
+.chart-header-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; flex-wrap:wrap; }
+.chart-period-control { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:11px; font-weight:600; white-space:nowrap; }
+.chart-period-control select { min-width:108px; min-height:36px; padding:7px 28px 7px 10px; border:1px solid var(--line); border-radius:10px; background:var(--surface-raised); color:var(--text-primary); font:inherit; cursor:pointer; }
+.chart-period-control select:focus-visible { outline:2px solid var(--orange); outline-offset:2px; }
+.chart-point { cursor:pointer; pointer-events:all; transition:r .15s ease, opacity .15s ease; }
+.chart-point:focus-visible { outline:none; stroke-width:4; filter:drop-shadow(0 0 5px rgba(245,130,32,.7)); }
+.chart-point.is-selected { opacity:1 !important; r:7; fill:var(--orange); stroke:var(--surface-panel); stroke-width:3; }
+.chart-axis-label { fill:var(--chart-label); font-size:10px; font-weight:600; }
+.chart-y-axis-label { font-size:9px; }
+.chart-point-detail { display:flex; flex-direction:column; gap:4px; margin:8px 0 10px; padding:12px 14px; border:1px solid var(--line); border-left:3px solid var(--orange); border-radius:10px; background:var(--surface-raised); color:var(--text-primary); min-height:65px; }
+.chart-point-detail .chart-detail-kicker { color:var(--text-secondary); font-size:9px; font-weight:800; letter-spacing:.12em; }
+.chart-point-detail strong { color:var(--text-primary); font-size:20px; line-height:1.25; }
+.chart-point-detail > span:last-child { color:var(--text-secondary); font-size:11px; line-height:1.5; }
+.chart-point-detail.has-selection { background:var(--surface-panel); }
+@media (max-width:700px) { .chart-header-actions { justify-content:flex-start; width:100%; } .analytics-heading { align-items:flex-start; flex-direction:column; } .chart-period-control { font-size:10px; } }
