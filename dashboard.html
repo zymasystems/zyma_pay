@@ -7,6 +7,7 @@
     <title>Zyma Pay — Payment Operations</title>
 
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/theme.js?v=20261023-1"></script>
 </head>
 
 <body>
@@ -181,12 +182,11 @@
                             </span>
 
                             <h1 id="dashboardGreeting">
-                                Welcome to Zyma Pay.
+                                Good day!
                             </h1>
 
-                            <p>
-                                Monitor payments, verify transactions,
-                                and manage client communications.
+                            <p id="dashboardSubtitle">
+                                Here’s an overview of company finances.
                             </p>
                         </div>
 
@@ -271,6 +271,47 @@
 
                     </div>
 
+
+                    <!-- ANALYTICS: values are derived from recorded payment data -->
+                    <div class="analytics-grid" aria-label="Payment analytics">
+                        <section class="panel analytics-panel">
+                            <div class="panel-header analytics-heading">
+                                <div><span class="eyebrow">PAYMENT MOMENTUM</span><h2>Received over time</h2><p>Confirmed payments grouped by month</p></div>
+                                <span class="chart-live-label"><i></i> LIVE DATA</span>
+                            </div>
+                            <div class="chart-summary"><strong id="chartRevenueTotal">R0.00</strong><span id="chartRevenueCaption">No confirmed payments recorded yet</span></div>
+                            <div class="chart-canvas line-chart-wrap">
+                                <svg id="revenueChart" viewBox="0 0 640 230" role="img" aria-label="Line chart of confirmed payments by month" preserveAspectRatio="none">
+                                    <defs><linearGradient id="revenueFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#f58220" stop-opacity=".30"/><stop offset="100%" stop-color="#f58220" stop-opacity="0"/></linearGradient></defs>
+                                    <g class="chart-grid-lines"><path d="M44 24H620 M44 68H620 M44 112H620 M44 156H620 M44 200H620"/></g>
+                                    <path class="chart-area" id="revenueArea" d="M44 200 L620 200"/>
+                                    <path class="chart-line" id="revenueLine" d="M44 200 L620 200"/>
+                                    <g id="revenuePoints"></g><g id="revenueLabels"></g>
+                                </svg>
+                            </div>
+                            <div class="chart-footnote" id="revenueChartNote">The chart will build as confirmed payment history accumulates.</div>
+                        </section>
+                        <section class="panel analytics-panel status-analytics-panel">
+                            <div class="panel-header analytics-heading"><div><span class="eyebrow">TRANSACTION HEALTH</span><h2>Payment status</h2><p>Current recorded payment mix</p></div></div>
+                            <div class="status-chart-layout">
+                                <div class="donut-wrap">
+                                    <svg id="statusChart" viewBox="0 0 220 220" role="img" aria-label="Donut chart showing payment status">
+                                        <circle class="donut-track" cx="110" cy="110" r="78"/>
+                                        <circle class="donut-segment donut-paid" id="statusPaidArc" cx="110" cy="110" r="78"/>
+                                        <circle class="donut-segment donut-awaiting" id="statusAwaitingArc" cx="110" cy="110" r="78"/>
+                                        <circle class="donut-segment donut-cancelled" id="statusCancelledArc" cx="110" cy="110" r="78"/>
+                                    </svg>
+                                    <div class="donut-center"><strong id="chartStatusTotal">0</strong><span>PAYMENTS</span></div>
+                                </div>
+                                <div class="status-legend">
+                                    <div><i class="legend-dot paid-dot"></i><span>Confirmed</span><strong id="chartPaidCount">0</strong></div>
+                                    <div><i class="legend-dot awaiting-dot"></i><span>Awaiting</span><strong id="chartAwaitingCount">0</strong></div>
+                                    <div><i class="legend-dot cancelled-dot"></i><span>Cancelled</span><strong id="chartCancelledCount">0</strong></div>
+                                </div>
+                            </div>
+                            <div class="chart-footnote" id="statusChartNote">Status distribution updates when payment records load.</div>
+                        </section>
+                    </div>
 
                     <!-- DASHBOARD GRID -->
                     <div class="dashboard-grid">
@@ -1017,7 +1058,8 @@
     <script src="js/api.js?v=20261008-6"></script>
     <script src="js/auth.js?v=20261008-6"></script>
     <script src="js/session.js?v=20261008-6"></script>
-    <script src="js/app.js?v=20261008-7"></script>
+    <script src="js/app.js?v=20261023-1"></script>
 
+    <script src="js/mobile-navigation.js"></script>
 </body>
 </html>

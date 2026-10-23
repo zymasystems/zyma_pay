@@ -20,9 +20,10 @@ function setMessage(elementId, message, isError = false) {
 
 async function handleApiLogin(email, password) {
     const submitButton = document.querySelector("#loginForm button[type='submit']");
+    const submitLabel = submitButton?.querySelector("span") || submitButton;
     if (submitButton) {
         submitButton.disabled = true;
-        submitButton.textContent = "Signing in…";
+        submitLabel.textContent = "Signing in…";
     }
 
     try {
@@ -49,7 +50,7 @@ async function handleApiLogin(email, password) {
 
         if (submitButton) {
             submitButton.disabled = false;
-            submitButton.textContent = "Sign in";
+            submitLabel.textContent = "Sign in";
         }
     }
 }
@@ -122,10 +123,11 @@ function setupForgotPassword() {
         }
 
         const button = form.querySelector("button[type='submit']");
+        const buttonLabel = button.querySelector("span") || button;
         const value = forgotEmail.value.trim();
 
         button.disabled = true;
-        button.textContent = "Sending…";
+        buttonLabel.textContent = "Sending…";
 
         try {
             const result = await window.zymaApi.forgotPassword(value);
@@ -139,13 +141,27 @@ function setupForgotPassword() {
             setMessage("forgotMessage", error.message || "Unable to request a password reset.", true);
         } finally {
             button.disabled = false;
-            button.textContent = "Send reset link";
+            buttonLabel.textContent = "Send reset link";
         }
+    });
+}
+
+function setupPasswordToggle() {
+    const toggle = document.getElementById("togglePassword");
+    const input = document.getElementById("loginPassword");
+    if (!toggle || !input) return;
+
+    toggle.addEventListener("click", () => {
+        const reveal = input.type === "password";
+        input.type = reveal ? "text" : "password";
+        toggle.textContent = reveal ? "Hide" : "Show";
+        toggle.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
     });
 }
 
 setupLoginForm();
 setupForgotPassword();
+setupPasswordToggle();
 
 if (authApiEnabled()) {
     window.zymaApi.getCurrentUser().catch(error => {

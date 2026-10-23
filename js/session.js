@@ -8,9 +8,33 @@
         return parts.slice(0, 2).map(part => part[0].toUpperCase()).join("");
     }
 
+    function getTimeGreeting(date = new Date()) {
+        const hour = date.getHours();
+        if (hour >= 5 && hour < 12) return "Good morning";
+        if (hour >= 12 && hour < 17) return "Good afternoon";
+        return "Good evening";
+    }
+
+    function firstName(fullName) {
+        const cleaned = String(fullName || "").trim();
+        if (!cleaned || cleaned.includes("@")) return "there";
+        return cleaned.split(/\s+/)[0];
+    }
+
+    function updateDashboardGreeting(userName) {
+        const heading = document.getElementById("dashboardGreeting");
+        if (!heading) return;
+        heading.textContent = `${getTimeGreeting()} ${firstName(userName)}.`;
+    }
+
+    // Render a time-appropriate greeting immediately, then personalize it once
+    // the authenticated user profile has loaded.
+    updateDashboardGreeting("");
+
     function applyUser(user) {
         if (!user) return;
         const name = user.name || user.fullName || user.email || "Staff Member";
+        updateDashboardGreeting(name);
         const role = user.roleName || user.role || "Staff";
         const avatar = document.getElementById("userAvatar");
         const nameElement = document.getElementById("userName");

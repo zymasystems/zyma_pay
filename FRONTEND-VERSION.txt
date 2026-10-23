@@ -1,1 +1,2 @@
-Zyma Pay frontend build 20261008-6 — logout functionality
+Zyma Pay frontend — CRM-aligned navigation and unified dark/light theme
+Version: 2026-10-23-2

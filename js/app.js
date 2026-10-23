@@ -263,6 +263,79 @@ function updatePaymentMetrics(payments, summary = null) {
     if (awaitingElement) awaitingElement.textContent = String(awaiting);
     if (paidElement) paidElement.textContent = String(paid);
     if (amountElement) amountElement.textContent = formatCurrency(receivedThisMonth);
+    renderPaymentCharts(normalized);
+}
+
+function renderPaymentCharts(payments) {
+    const line = document.getElementById("revenueLine");
+    const area = document.getElementById("revenueArea");
+    const pointsGroup = document.getElementById("revenuePoints");
+    const labelsGroup = document.getElementById("revenueLabels");
+    if (!line || !area || !pointsGroup || !labelsGroup) return;
+
+    const confirmed = payments.filter(payment => payment.status === "paid");
+    const monthly = new Map();
+    confirmed.forEach(payment => {
+        const rawDate = payment.paymentDate || payment.createdAt;
+        const date = rawDate ? new Date(rawDate) : null;
+        if (!date || Number.isNaN(date.getTime())) return;
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        monthly.set(key, (monthly.get(key) || 0) + payment.amount);
+    });
+    const entries = [...monthly.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
+    const total = confirmed.reduce((sum, payment) => sum + payment.amount, 0);
+    const totalEl = document.getElementById("chartRevenueTotal");
+    const caption = document.getElementById("chartRevenueCaption");
+    const note = document.getElementById("revenueChartNote");
+    if (totalEl) totalEl.textContent = formatCurrency(total);
+    if (caption) caption.textContent = `${confirmed.length} confirmed payment${confirmed.length === 1 ? "" : "s"} recorded`;
+    if (note) note.textContent = entries.length ? "Only months with recorded confirmed payments are shown; no historical values are estimated." : "Record and confirm payments to reveal the monthly trend.";
+
+    const xStart = 48, xEnd = 616, yTop = 24, yBottom = 194;
+    const max = Math.max(1, ...entries.map(item => item[1]));
+    const coords = entries.map((item, index) => ({
+        x: entries.length === 1 ? (xStart + xEnd) / 2 : xStart + (xEnd - xStart) * index / (entries.length - 1),
+        y: yBottom - (item[1] / max) * (yBottom - yTop),
+        key: item[0], value: item[1]
+    }));
+    const linePath = coords.length ? coords.map((point, i) => `${i ? "L" : "M"}${point.x} ${point.y}`).join(" ") : `M${xStart} ${yBottom} L${xEnd} ${yBottom}`;
+    line.setAttribute("d", linePath);
+    area.setAttribute("d", coords.length ? `${linePath} L${coords[coords.length - 1].x} ${yBottom} L${coords[0].x} ${yBottom} Z` : `M${xStart} ${yBottom} L${xEnd} ${yBottom} Z`);
+    pointsGroup.replaceChildren(); labelsGroup.replaceChildren();
+    const ns = "http://www.w3.org/2000/svg";
+    coords.forEach(point => {
+        const circle = document.createElementNS(ns, "circle");
+        circle.setAttribute("cx", point.x); circle.setAttribute("cy", point.y); circle.setAttribute("r", "4.5"); circle.setAttribute("class", "chart-point");
+        const title = document.createElementNS(ns, "title"); title.textContent = `${point.key}: ${formatCurrency(point.value)}`; circle.append(title); pointsGroup.append(circle);
+        const label = document.createElementNS(ns, "text"); label.setAttribute("x", point.x); label.setAttribute("y", "220"); label.setAttribute("text-anchor", "middle"); label.setAttribute("class", "chart-axis-label");
+        const [year, month] = point.key.split("-"); label.textContent = new Intl.DateTimeFormat("en-ZA", { month: "short" }).format(new Date(Number(year), Number(month) - 1, 1)); labelsGroup.append(label);
+    });
+    const length = line.getTotalLength ? line.getTotalLength() : 700;
+    line.style.strokeDasharray = `${length}`; line.style.strokeDashoffset = `${length}`;
+    area.classList.remove("chart-area-animate"); line.classList.remove("chart-line-animate");
+    void line.getBoundingClientRect();
+    area.classList.add("chart-area-animate"); line.classList.add("chart-line-animate");
+
+    const statuses = {
+        paid: payments.filter(p => p.status === "paid").length,
+        awaiting: payments.filter(p => p.status === "awaiting").length,
+        cancelled: payments.filter(p => p.status === "cancelled").length
+    };
+    const count = payments.length;
+    const circumference = 2 * Math.PI * 78;
+    let offset = 0;
+    [["statusPaidArc", statuses.paid], ["statusAwaitingArc", statuses.awaiting], ["statusCancelledArc", statuses.cancelled]].forEach(([id, value]) => {
+        const arc = document.getElementById(id); if (!arc) return;
+        const dash = count ? circumference * value / count : 0;
+        arc.style.strokeDasharray = `${dash} ${circumference - dash}`;
+        arc.style.strokeDashoffset = `${-offset}`;
+        offset += dash;
+        arc.classList.remove("donut-animate"); void arc.getBoundingClientRect(); arc.classList.add("donut-animate");
+    });
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = String(value); };
+    setText("chartStatusTotal", count); setText("chartPaidCount", statuses.paid); setText("chartAwaitingCount", statuses.awaiting); setText("chartCancelledCount", statuses.cancelled);
+    const statusNote = document.getElementById("statusChartNote");
+    if (statusNote) statusNote.textContent = count ? `${Math.round(statuses.paid / count * 100)}% of recorded payments are confirmed.` : "Status distribution will appear when payment records load.";
 }
 
 function renderPaymentsFromApi(response) {

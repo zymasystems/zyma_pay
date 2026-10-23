@@ -1,0 +1,69 @@
+/* Zyma Pay staff sign-in — shares its design with the Zyma CRM sign-in.
+   Scoped to body.login-page so reset-password.html and the app are unaffected. */
+.login-page{--ink:#111827;--muted:#667085;--line:#e5e1dc;--paper:#fff;--canvas:#f5f4f1;--orange:#ff8617;--orange-dark:#d95d00;--green:#147d55;--shadow:0 24px 70px rgba(25,22,18,.09);
+  margin:0;min-height:100vh;display:grid;place-items:center;padding:32px;background:var(--canvas);color:var(--ink);font-size:14px;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.login-page *{box-sizing:border-box}
+.login-page a{color:var(--orange-dark);text-decoration:none}
+.login-page a:hover{text-decoration:underline}
+.login-page [hidden]{display:none!important}
+.login-page button,.login-page input{font:inherit}
+
+.auth-shell{width:min(1120px,100%);min-height:680px;display:grid;grid-template-columns:1.03fr .97fr;background:var(--paper);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow);animation:shell-in .65s cubic-bezier(.2,.75,.25,1) both}
+
+.auth-story{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:48px;background:#111318;color:#fff;isolation:isolate;overflow:hidden}
+.auth-story:before,.auth-story:after{content:"";position:absolute;z-index:-1;border-radius:50%;pointer-events:none}
+.auth-story:before{width:500px;height:500px;right:-220px;top:-160px;border:1px solid rgba(255,134,23,.25);box-shadow:0 0 0 42px rgba(255,134,23,.035),0 0 0 95px rgba(255,134,23,.025)}
+.auth-story:after{width:300px;height:300px;right:-90px;bottom:-160px;background:radial-gradient(circle,rgba(255,134,23,.22),transparent 70%)}
+.auth-full-logo{width:min(290px,90%);height:auto;object-fit:contain;object-position:left center}
+.story-copy{max-width:420px;margin:72px 0}
+.eyebrow{display:block;font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--orange-dark);text-transform:uppercase;margin-bottom:13px}
+.auth-story .eyebrow{color:#ff9b36}
+.story-copy h1{font-size:clamp(32px,4vw,48px);line-height:1.08;letter-spacing:-.045em;margin:0 0 18px;font-weight:650}
+.story-copy p{max-width:370px;color:#c6c7cb;font-size:16px;line-height:1.75;margin:0}
+.story-foot{display:flex;flex-wrap:wrap;gap:10px;color:#c9c9ce;font-size:11px}
+
+.auth-panel{display:grid;place-items:center;padding:50px 54px}
+.auth-panel-inner{width:min(360px,100%);animation:content-in .7s .1s both}
+.auth-symbol{width:54px;height:54px;object-fit:contain;margin-bottom:35px}
+.auth-panel h2{font-size:29px;letter-spacing:-.04em;line-height:1.15;margin:0 0 10px}
+.muted{color:var(--muted);line-height:1.65;margin:0 0 30px}
+
+.login-page form label{display:block;font-size:12px;font-weight:650;margin:0 0 8px}
+.login-page form input{width:100%;height:47px;border:1px solid #dcd6cf;border-radius:10px;background:#fff;padding:0 13px;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s}
+.login-page form input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,134,23,.13)}
+.login-page form>input,.login-page form>.field-block{margin-bottom:21px}
+.label-row{display:flex;align-items:center;justify-content:space-between}
+.label-row a{font-size:11px;margin-bottom:8px}
+.password-wrap{position:relative}
+.password-wrap input{padding-right:60px}
+.show-password{position:absolute;right:8px;top:7px;height:33px;border:0;background:transparent;color:#667085;font-size:11px;font-weight:700;cursor:pointer}
+
+.primary-btn{display:inline-flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:45px;margin-top:20px;padding:0 16px;border:1px solid var(--orange);border-radius:10px;background:var(--orange);color:#171717;font-weight:700;cursor:pointer;transition:transform .18s,box-shadow .18s,background .18s}
+.primary-btn:hover{background:#ff982f;box-shadow:0 8px 20px rgba(255,134,23,.2);transform:translateY(-1px)}
+.primary-btn:disabled{opacity:.6;cursor:wait;transform:none}
+.text-btn{margin-top:18px;padding:0;border:0;background:none;color:var(--orange-dark);font-size:12px;font-weight:700;cursor:pointer}
+.text-btn:hover{text-decoration:underline}
+
+.auth-message{font-size:12px;line-height:1.5;margin-top:10px;color:var(--muted)}
+.auth-message.error{color:var(--orange-dark)}
+.auth-message:empty{display:none}
+.auth-help{margin:25px 0 0;color:var(--muted);font-size:12px;line-height:1.7}
+.auth-secure{display:flex;align-items:center;gap:8px;margin-top:30px;padding-top:18px;border-top:1px solid #efede9;color:#7b7b80;font-size:11px}
+.secure-dot{width:7px;height:7px;border-radius:50%;background:#2ca477;box-shadow:0 0 0 4px #e7f5ee}
+
+@keyframes shell-in{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes content-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:780px){
+  .login-page{padding:14px}
+  .auth-shell{grid-template-columns:1fr;min-height:0}
+  .auth-story{padding:25px;min-height:240px}
+  .auth-full-logo{width:190px}
+  .story-copy{margin:35px 0 20px}
+  .story-copy h1{font-size:32px}
+  .story-copy p{font-size:13px}
+  .story-foot{font-size:10px}
+  .auth-panel{padding:36px 25px}
+  .auth-symbol{margin-bottom:22px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
