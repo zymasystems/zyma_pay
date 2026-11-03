@@ -819,10 +819,228 @@ function renderInvoiceMatchingSummary(invoiceRows, payments) {
     el.textContent = `${matched} of ${issued.length} issued invoice${issued.length === 1 ? "" : "s"} have a confirmed payment reference. ${unmatchedPayments} confirmed payment${unmatchedPayments === 1 ? " has" : "s have"} a reference that does not match an issued invoice.`;
 }
 
+function renderFinancialKpis(payments, invoiceRows) {
+    const setText = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    };
+    const confirmed = payments.filter(payment => payment.status === "paid");
+    const cashCollected = confirmed.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    setText("kpiCashCollected", formatCurrency(cashCollected));
+    setText(
+        "kpiCashCollectedCaption",
+        confirmed.length
+            ? `${confirmed.length} confirmed payment${confirmed.length === 1 ? "" : "s"} on record`
+            : "No confirmed payments on record"
+    );
+
+    const outstanding = invoiceRows
+        .filter(invoice => !invoiceIsDraft(invoice) && invoice.balance > 0.009)
+        .reduce((sum, invoice) => sum + invoice.balance, 0);
+    setText("kpiOutstanding", formatCurrency(outstanding));
+    setText(
+        "kpiOutstandingCaption",
+        invoiceRows.some(invoice => !invoiceIsDraft(invoice))
+            ? "Remaining balances on issued invoices"
+            : "No issued invoice balances"
+    );
+
+    const month = getClientRevenuePeriodRange("monthly");
+    const monthlyRevenueByClient = new Map();
+    confirmed.forEach(payment => {
+        const date = financeDate(payment.paymentDate || payment.createdAt);
+        if (!date || date < month.start || date >= month.end) return;
+        const client = String(payment.clientName || "Unknown client").trim() || "Unknown client";
+        monthlyRevenueByClient.set(
+            client,
+            (monthlyRevenueByClient.get(client) || 0) + (Number(payment.amount) || 0)
+        );
+    });
+    const monthlyRevenue = [...monthlyRevenueByClient.values()].reduce((sum, amount) => sum + amount, 0);
+    const topClient = [...monthlyRevenueByClient.entries()].sort((a, b) => b[1] - a[1])[0];
+    setText(
+        "kpiClientContribution",
+        monthlyRevenue && topClient ? `${Math.round(topClient[1] / monthlyRevenue * 100)}%` : "0%"
+    );
+    setText(
+        "kpiClientContributionCaption",
+        topClient
+            ? `${topClient[0]} · ${formatCurrency(topClient[1])} this month`
+            : "No confirmed payments this month"
+    );
+
+    const issuedInvoices = invoiceRows.filter(invoice => !invoiceIsDraft(invoice));
+    const billed = issuedInvoices.reduce((sum, invoice) => sum + Math.max(0, invoice.amount), 0);
+    const collectedAgainstInvoices = issuedInvoices.reduce(
+        (sum, invoice) => sum + Math.min(Math.max(0, invoice.matchedPaid), Math.max(0, invoice.amount)),
+        0
+    );
+    setText(
+        "kpiCollectionRate",
+        billed ? `${Math.round(collectedAgainstInvoices / billed * 100)}%` : "0%"
+    );
+    setText(
+        "kpiCollectionRateCaption",
+        billed
+            ? `Confirmed payments against ${issuedInvoices.length} issued invoice${issuedInvoices.length === 1 ? "" : "s"}`
+            : "No issued invoices on record"
+    );
+}
+
+function renderCashCollectionHistogram(payments) {
+    const container = document.getElementById("collectionHistogram");
+    if (!container) return;
+
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, index) => {
+        const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        return {
+            key,
+            label: new Intl.DateTimeFormat("en-ZA", { month: "short" }).format(date),
+            value: 0
+        };
+    });
+    const byMonth = new Map(months.map(month => [month.key, month]));
+    payments.filter(payment => payment.status === "paid").forEach(payment => {
+        const date = financeDate(payment.paymentDate || payment.createdAt);
+        if (!date) return;
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        const month = byMonth.get(key);
+        if (month) month.value += Number(payment.amount) || 0;
+    });
+
+    container.setAttribute(
+        "aria-label",
+        `Confirmed cash collected over the last six months: ${months.map(month => `${month.label} ${formatCurrency(month.value)}`).join(", ")}`
+    );
+    const max = Math.max(...months.map(month => month.value), 0);
+    container.replaceChildren();
+    months.forEach(month => {
+        const column = document.createElement("div");
+        column.className = "collection-histogram-column";
+        column.setAttribute("aria-label", `${month.label}: ${formatCurrency(month.value)} confirmed`);
+        const amount = document.createElement("span");
+        amount.className = "collection-histogram-value";
+        amount.textContent = formatCompactCurrency(month.value);
+        const track = document.createElement("div");
+        track.className = "collection-histogram-track";
+        const bar = document.createElement("span");
+        bar.className = "collection-histogram-bar";
+        bar.style.height = `${max ? Math.max(month.value ? 4 : 0, month.value / max * 100) : 0}%`;
+        bar.title = `${month.label}: ${formatCurrency(month.value)} confirmed`;
+        track.append(bar);
+        const label = document.createElement("span");
+        label.className = "collection-histogram-label";
+        label.textContent = month.label;
+        column.append(amount, track, label);
+        container.append(column);
+    });
+}
+
+function renderClientRevenueBars(payments) {
+    const container = document.getElementById("clientRevenueBars");
+    if (!container) return;
+    const period = document.getElementById("clientRevenuePeriod")?.value || "monthly";
+    const range = getClientRevenuePeriodRange(period);
+    const byClient = new Map();
+    payments.forEach(payment => {
+        if (payment.status !== "paid") return;
+        if (period !== "all") {
+            const date = financeDate(payment.paymentDate || payment.createdAt);
+            if (!date || date < range.start || date >= range.end) return;
+        }
+        const name = String(payment.clientName || "Unknown client").trim() || "Unknown client";
+        byClient.set(name, (byClient.get(name) || 0) + (Number(payment.amount) || 0));
+    });
+    const rows = [...byClient.entries()].sort((a, b) => b[1] - a[1]);
+    const total = rows.reduce((sum, [, amount]) => sum + amount, 0);
+    const periodLabel = period === "all" ? "all time" : period === "monthly" ? "this month" : period === "quarterly" ? "this quarter" : "this year";
+    const caption = document.getElementById("clientRevenueChartCaption");
+    if (caption) caption.textContent = `Share of confirmed revenue · ${periodLabel}`;
+    container.replaceChildren();
+    if (!rows.length) {
+        container.setAttribute("aria-label", `No confirmed client revenue for ${periodLabel}.`);
+        const empty = document.createElement("p");
+        empty.className = "finance-empty";
+        empty.textContent = `No confirmed client revenue for ${periodLabel}.`;
+        container.append(empty);
+        return;
+    }
+
+    const topRows = rows.slice(0, 5);
+    const otherTotal = rows.slice(5).reduce((sum, [, amount]) => sum + amount, 0);
+    if (otherTotal > 0) topRows.push(["Other clients", otherTotal]);
+    container.setAttribute(
+        "aria-label",
+        `Confirmed revenue by client for ${periodLabel}: ${topRows.map(([name, amount]) => `${name} ${formatCurrency(amount)}, ${Math.round(amount / total * 100)} percent`).join("; ")}`
+    );
+    const max = Math.max(...topRows.map(([, amount]) => amount), 1);
+    topRows.forEach(([name, amount]) => {
+        const row = document.createElement("div");
+        row.className = "client-revenue-bar-row";
+        const label = document.createElement("span");
+        label.className = "client-revenue-bar-name";
+        label.textContent = name;
+        const track = document.createElement("div");
+        track.className = "client-revenue-bar-track";
+        const bar = document.createElement("span");
+        bar.className = "client-revenue-bar-fill";
+        bar.style.width = `${Math.max(2, amount / max * 100)}%`;
+        bar.title = `${name}: ${formatCurrency(amount)} (${Math.round(amount / total * 100)}%)`;
+        track.append(bar);
+        const value = document.createElement("strong");
+        value.textContent = formatCurrency(amount);
+        row.append(label, track, value);
+        container.append(row);
+    });
+}
+
+function renderCashReceivablesPie(payments, invoiceRows) {
+    const pie = document.getElementById("cashReceivablesPie");
+    const legend = document.getElementById("cashReceivablesLegend");
+    if (!pie || !legend) return;
+    const confirmedCash = payments
+        .filter(payment => payment.status === "paid")
+        .reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    const outstanding = invoiceRows
+        .filter(invoice => !invoiceIsDraft(invoice) && invoice.balance > 0.009)
+        .reduce((sum, invoice) => sum + invoice.balance, 0);
+    const total = confirmedCash + outstanding;
+    const collectedAngle = total ? confirmedCash / total * 360 : 0;
+    pie.style.background = total
+        ? `conic-gradient(#44bd83 0deg ${collectedAngle}deg, #f58220 ${collectedAngle}deg 360deg)`
+        : "var(--chart-grid)";
+    pie.setAttribute(
+        "aria-label",
+        `Pie chart: ${formatCurrency(confirmedCash)} confirmed cash collected and ${formatCurrency(outstanding)} outstanding receivables`
+    );
+    legend.replaceChildren();
+    [
+        { label: "Confirmed cash", amount: confirmedCash, color: "collected" },
+        { label: "Outstanding receivables", amount: outstanding, color: "receivable" }
+    ].forEach(item => {
+        const row = document.createElement("div");
+        row.className = "cash-receivables-legend-row";
+        const marker = document.createElement("i");
+        marker.className = `cash-receivables-marker ${item.color}`;
+        const label = document.createElement("span");
+        label.textContent = item.label;
+        const amount = document.createElement("strong");
+        amount.textContent = formatCurrency(item.amount);
+        row.append(marker, label, amount);
+        legend.append(row);
+    });
+}
+
 function renderFinanceInsights(payments, invoices) {
     const normalizedPayments = (Array.isArray(payments) ? payments : []).map(payment => payment?.clientName !== undefined ? payment : normalizePayment(payment));
     const normalizedInvoices = (Array.isArray(invoices) ? invoices : []).map(invoice => invoice?.number !== undefined ? invoice : normalizeDashboardInvoice(invoice));
     const invoiceRows = makeFinanceInvoiceRows(normalizedInvoices, normalizedPayments);
+    renderFinancialKpis(normalizedPayments, invoiceRows);
+    renderCashCollectionHistogram(normalizedPayments);
+    renderClientRevenueBars(normalizedPayments);
+    renderCashReceivablesPie(normalizedPayments, invoiceRows);
     renderOutstandingPayments(invoiceRows);
     renderCashflow(invoiceRows);
     renderClientRevenue(normalizedPayments);
@@ -876,7 +1094,7 @@ function exportOutstandingReport() {
 const cashflowHorizonControl = document.getElementById("cashflowHorizon");
 if (cashflowHorizonControl) cashflowHorizonControl.addEventListener("change", () => renderFinanceInsights(latestChartPayments, latestFinanceInvoices));
 const clientRevenuePeriodControl = document.getElementById("clientRevenuePeriod");
-if (clientRevenuePeriodControl) clientRevenuePeriodControl.addEventListener("change", () => renderClientRevenue(latestChartPayments));
+if (clientRevenuePeriodControl) clientRevenuePeriodControl.addEventListener("change", () => renderFinanceInsights(latestChartPayments, latestFinanceInvoices));
 document.getElementById("exportFinancialReport")?.addEventListener("click", exportFinancialReport);
 document.getElementById("exportOutstandingReport")?.addEventListener("click", exportOutstandingReport);
 

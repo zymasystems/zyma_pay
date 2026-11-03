@@ -271,6 +271,50 @@
 
                     </div>
 
+                    <section class="financial-kpi-section" aria-label="Financial key performance indicators">
+                        <div class="financial-kpi-heading">
+                            <span class="eyebrow">FINANCIAL PERFORMANCE</span>
+                            <p>Measures use confirmed payments and issued invoices currently loaded.</p>
+                        </div>
+                        <div class="metrics financial-kpi-grid">
+                            <div class="metric-card">
+                                <div class="metric-top"><span>Monthly recurring revenue</span><span class="metric-icon">R</span></div>
+                                <strong class="metric-value kpi-unavailable" id="kpiMrr">Not tracked</strong>
+                                <span class="metric-change">Subscription data is not connected</span>
+                            </div>
+                            <div class="metric-card amount-card">
+                                <div class="metric-top"><span>Total cash collected</span><span class="metric-icon">R</span></div>
+                                <strong class="metric-value" id="kpiCashCollected">R0.00</strong>
+                                <span class="metric-change" id="kpiCashCollectedCaption">No confirmed payments on record</span>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-top"><span>Outstanding receivables</span><span class="metric-icon">↗</span></div>
+                                <strong class="metric-value" id="kpiOutstanding">R0.00</strong>
+                                <span class="metric-change" id="kpiOutstandingCaption">No issued invoice balances</span>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-top"><span>Client revenue contribution</span><span class="metric-icon">%</span></div>
+                                <strong class="metric-value" id="kpiClientContribution">0%</strong>
+                                <span class="metric-change" id="kpiClientContributionCaption">Top client share this month</span>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-top"><span>Operating expenses</span><span class="metric-icon">R</span></div>
+                                <strong class="metric-value kpi-unavailable" id="kpiOperatingExpenses">Not tracked</strong>
+                                <span class="metric-change">Expense records are not connected</span>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-top"><span>Net operating profit</span><span class="metric-icon">R</span></div>
+                                <strong class="metric-value kpi-unavailable" id="kpiOperatingProfit">Not tracked</strong>
+                                <span class="metric-change">Requires expense records</span>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-top"><span>Collection rate</span><span class="metric-icon">%</span></div>
+                                <strong class="metric-value" id="kpiCollectionRate">0%</strong>
+                                <span class="metric-change" id="kpiCollectionRateCaption">No issued invoices on record</span>
+                            </div>
+                        </div>
+                    </section>
+
 
                     <!-- ANALYTICS: values are derived from recorded payment data -->
                     <div class="analytics-grid" aria-label="Payment analytics">
@@ -326,6 +370,45 @@
                             <div class="chart-footnote" id="statusChartNote">Status distribution updates when payment records load.</div>
                         </section>
                     </div>
+
+                    <section class="financial-charts-grid" aria-label="Financial charts">
+                        <article class="panel financial-chart-panel">
+                            <div class="financial-chart-heading">
+                                <span class="eyebrow">CASH FLOW</span>
+                                <h2>Monthly collections</h2>
+                                <p>Confirmed payments received over the last six months.</p>
+                            </div>
+                            <div class="collection-histogram" id="collectionHistogram" role="img" aria-label="Histogram of confirmed payments collected by month">
+                                <p class="finance-empty">Monthly collections will appear when payment records load.</p>
+                            </div>
+                            <p class="chart-footnote">Based on confirmed payments currently loaded. Months without recorded payments are shown as zero.</p>
+                        </article>
+                        <article class="panel financial-chart-panel">
+                            <div class="financial-chart-heading">
+                                <span class="eyebrow">CLIENT MIX</span>
+                                <h2>Revenue contribution</h2>
+                                <p id="clientRevenueChartCaption">Top clients by confirmed revenue this month.</p>
+                            </div>
+                            <div class="client-revenue-bars" id="clientRevenueBars" role="img" aria-label="Bar chart of confirmed revenue by client">
+                                <p class="finance-empty">Client revenue will appear when confirmed payments load.</p>
+                            </div>
+                            <p class="chart-footnote">Uses the same period selected in the Revenue by client panel.</p>
+                        </article>
+                        <article class="panel financial-chart-panel">
+                            <div class="financial-chart-heading">
+                                <span class="eyebrow">COLLECTION POSITION</span>
+                                <h2>Cash and receivables</h2>
+                                <p>Confirmed cash compared with open invoice balances.</p>
+                            </div>
+                            <div class="cash-receivables-chart">
+                                <div class="cash-receivables-pie" id="cashReceivablesPie" role="img" aria-label="Pie chart comparing confirmed cash collected with outstanding receivables"></div>
+                                <div class="cash-receivables-legend" id="cashReceivablesLegend">
+                                    <p class="finance-empty">Collection totals will appear when finance records load.</p>
+                                </div>
+                            </div>
+                            <p class="chart-footnote">Pie shows the relative size of total confirmed cash and outstanding issued-invoice balances, not a forecast.</p>
+                        </article>
+                    </section>
 
                     <!-- FINANCIAL OPERATIONS: receivables, forecast, client revenue and reporting -->
                     <div class="finance-insights-grid" aria-label="Financial operations insights">
@@ -1118,7 +1201,7 @@
     <script src="js/api.js?v=20261008-6"></script>
     <script src="js/auth.js?v=20261008-6"></script>
     <script src="js/session.js?v=20261008-6"></script>
-    <script src="js/app.js?v=20261023-3"></script>
+    <script src="js/app.js?v=20261103-2"></script>
 
     <script src="js/mobile-navigation.js"></script>
 </body>
