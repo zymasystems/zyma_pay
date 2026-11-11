@@ -753,6 +753,10 @@ document.getElementById("showReceiptForm").addEventListener("click", () => {
     receiptFormPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+if (new URLSearchParams(window.location.search).get("action") === "create") {
+    document.getElementById("showReceiptForm").click();
+}
+
 document.getElementById("cancelReceiptForm").addEventListener("click", () => {
     receiptForm.reset();
     document.getElementById("receiptNotes").value = defaultReceiptNotes;

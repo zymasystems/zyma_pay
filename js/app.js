@@ -1386,7 +1386,6 @@ navItems.forEach(item => {
 
 });
 
-
 /* =========================================================
    NEW PAYMENT BUTTONS
 ========================================================= */
@@ -2302,6 +2301,16 @@ document.querySelectorAll(
 /* =========================================================
    INITIAL DATA LOAD
 ========================================================= */
+
+function showPageFromHash() {
+    const pageId = window.location.hash.slice(1);
+    if (pageId === "payments" || pageId === "new-payment") {
+        showPage(pageId);
+    }
+}
+
+window.addEventListener("hashchange", showPageFromHash);
+showPageFromHash();
 
 updatePreview();
 

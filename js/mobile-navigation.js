@@ -5,6 +5,16 @@
   if (!sidebar || !topbar) return;
 
   sidebar.id = sidebar.id || 'zyma-pay-sidebar';
+  const brand = sidebar.querySelector('.brand');
+  if (brand && !sidebar.querySelector('.workspace-switcher')) {
+    const workspace = document.createElement('a');
+    workspace.className = 'workspace-switcher';
+    workspace.href = 'dashboard.html';
+    workspace.setAttribute('aria-label', 'Current workspace: Zyma Pay');
+    workspace.innerHTML = '<span class="workspace-icon"><img src="images/zyma-symbol.png" alt="" aria-hidden="true"></span><span class="workspace-copy"><strong>Zyma Pay</strong><small>Finance workspace</small></span><span class="chevron" aria-hidden="true">⌄</span>';
+    brand.after(workspace);
+  }
+
   let toggle = document.getElementById('mobile-menu');
   if (!toggle) {
     toggle = document.createElement('button');
@@ -21,7 +31,6 @@
     toggle.setAttribute('aria-expanded', 'false');
   }
 
-  const brand = sidebar.querySelector('.brand');
   let closeButton = sidebar.querySelector('.mobile-drawer-close');
   if (!closeButton && brand) {
     closeButton = document.createElement('button');

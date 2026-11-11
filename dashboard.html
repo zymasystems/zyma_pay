@@ -32,6 +32,11 @@
                 </div>
             </div>
 
+            <a class="workspace-switcher" href="dashboard.html" aria-label="Current workspace: Zyma Pay">
+                <span class="workspace-icon"><img src="images/zyma-symbol.png" alt="" aria-hidden="true"></span>
+                <span class="workspace-copy"><strong>Zyma Pay</strong><small>Finance workspace</small></span>
+                <span class="chevron" aria-hidden="true">⌄</span>
+            </a>
 
             <div class="sidebar-section">
 
@@ -115,8 +120,8 @@
                     <span class="status-dot"></span>
 
                     <div>
-                        <strong>System Online</strong>
-                        <small>All systems nominal</small>
+                        <strong>Finance workspace</strong>
+                        <small>Billing and payment operations</small>
                     </div>
                 </div>
 
@@ -154,11 +159,6 @@
 
                 <div class="topbar-actions">
 
-                    <button class="icon-button" title="Notifications">
-                        ♧
-                        <span class="notification-dot"></span>
-                    </button>
-
                     <button class="primary-button" id="topNewPayment">
                         <span>+</span>
                         New Payment
@@ -179,20 +179,24 @@
 
                 <section class="page active-page" id="dashboard">
 
-                    <div class="page-heading">
+                    <div class="page-heading dashboard-page-heading">
 
                         <div>
                             <span class="eyebrow">
-                                ZYMA PAY · PAYMENT OPERATIONS
+                                YOUR FINANCE WORKSPACE
                             </span>
 
                             <h1 id="dashboardGreeting">
                                 Good day!
                             </h1>
 
-                            <p id="dashboardSubtitle">
-                                Here’s an overview of company finances.
-                            </p>
+                            <p id="dashboardSubtitle">Your payment activity, outstanding invoices, and recent client transactions.</p>
+                        </div>
+
+                        <div class="dashboard-heading-actions">
+                            <a class="secondary-button" href="invoices.html?action=create"><span aria-hidden="true">▤</span> Create invoice</a>
+                            <a class="secondary-button" href="sales-receipts.html?action=create"><span aria-hidden="true">▧</span> Sales receipt</a>
+                            <button class="primary-button" type="button" data-page-target="new-payment"><span aria-hidden="true">+</span> Record payment</button>
                         </div>
 
                         <div class="date-display" id="currentDateDisplay" aria-label="Current date">
@@ -276,6 +280,16 @@
 
                     </div>
 
+                    <details class="finance-analytics-disclosure">
+                        <summary>
+                            <span class="finance-disclosure-icon" aria-hidden="true">↗</span>
+                            <span class="finance-disclosure-copy">
+                                <strong>Financial insights & reports</strong>
+                                <small>Revenue trends, cash flow, client performance, and exports</small>
+                            </span>
+                            <span class="finance-disclosure-action">Explore reports <span aria-hidden="true">⌄</span></span>
+                        </summary>
+                        <div class="finance-analytics-content">
                     <section class="financial-kpi-section" aria-label="Financial key performance indicators">
                         <div class="financial-kpi-heading">
                             <span class="eyebrow">FINANCIAL PERFORMANCE</span>
@@ -460,6 +474,8 @@
                             <div class="finance-reminder-note"><span class="reminder-status-dot"></span><div><strong>Automated payment reminders</strong><p>Planned n8n integration. Reminders are not active yet.</p><span class="planned-tag">LOW PRIORITY · NOT CONNECTED</span></div></div>
                         </section>
                     </div>
+                        </div>
+                    </details>
 
                     <!-- DASHBOARD GRID -->
                     <div class="dashboard-grid">
@@ -547,22 +563,9 @@
 
                             </button>
 
-
-                            <div class="quick-divider"></div>
-
-
-                            <div class="quick-info">
-
-                                <span class="info-icon">
-                                    i
-                                </span>
-
-                                <p>
-                                    Payments are recorded first
-                                    and confirmed once funds have
-                                    reflected in the Zyma account.
-                                </p>
-
+                            <div class="quick-action-links">
+                                <a href="invoices.html?action=create"><span aria-hidden="true">▤</span><span><strong>New invoice</strong><small>Request a payment</small></span><span aria-hidden="true">→</span></a>
+                                <a href="sales-receipts.html?action=create"><span aria-hidden="true">▧</span><span><strong>New receipt</strong><small>Confirm a payment received</small></span><span aria-hidden="true">→</span></a>
                             </div>
 
                         </div>

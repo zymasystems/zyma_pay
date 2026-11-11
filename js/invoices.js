@@ -861,6 +861,10 @@ document.getElementById("showInvoiceForm").addEventListener("click", () => {
     invoiceFormPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+if (new URLSearchParams(window.location.search).get("action") === "create") {
+    document.getElementById("showInvoiceForm").click();
+}
+
 document.getElementById("cancelInvoiceForm").addEventListener("click", () => {
     invoiceForm.reset();
     invoiceItems.replaceChildren(
