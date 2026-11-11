@@ -17,13 +17,12 @@ const invoiceTerms = document.getElementById("invoiceTerms");
 let currentPdfUrl = "";
 let invoiceLogoDataPromise;
 let generatedInvoiceNumber = "INV-1101";
-const defaultInvoiceNotes = `Please make payments to our business bank account:
-Bank: [Bank name]
-Name: [Account name]
-Account Number: [Account number]
-Branch Code: [Branch code]
-Account Type: [Account type]
-
+const defaultInvoiceNotes = `Please make payments to our business Account:
+Account holder: ZYMA SYSTEMS (PTY) LTD
+Account number: 1341600262
+Account type: CA
+Bank name: Nedbank
+Branch code: 198765
 Thank you for your patronage!`;
 let currentPreviewInvoiceNumber = "";
 
