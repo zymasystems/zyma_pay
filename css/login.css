@@ -67,3 +67,68 @@
   .auth-symbol{margin-bottom:22px}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* A more expressive, calmer entry to the refreshed finance workspace. */
+.login-page {
+  --ink: #17212b;
+  --muted: #71808e;
+  --line: #e4e9ee;
+  --paper: #fff;
+  --canvas: #f1f4f6;
+  --orange: #f58220;
+  --orange-dark: #d66b12;
+  --shadow: 0 28px 90px rgba(22,31,40,.12);
+  background:
+    radial-gradient(ellipse at 12% 8%, rgba(245,130,32,.10), transparent 30%),
+    radial-gradient(ellipse at 92% 90%, rgba(22,55,72,.07), transparent 34%),
+    var(--canvas);
+}
+.auth-shell {
+  width: min(1160px,100%);
+  min-height: min(740px, calc(100vh - 64px));
+  border-color: rgba(255,255,255,.8);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+}
+.auth-story {
+  padding: clamp(32px,5vw,62px);
+  background:
+    radial-gradient(ellipse at 83% 18%, rgba(245,130,32,.18), transparent 30%),
+    linear-gradient(145deg,#17232c 0%,#11181f 68%,#1d252c 100%);
+}
+.auth-story:before {
+  width: 470px;
+  height: 470px;
+  right: -210px;
+  top: 15%;
+  border-color: rgba(255,255,255,.08);
+  box-shadow: 0 0 0 48px rgba(255,255,255,.025), 0 0 0 100px rgba(255,255,255,.018);
+}
+.auth-story:after { background: radial-gradient(circle,rgba(245,130,32,.22),transparent 70%); }
+.auth-full-logo { width: min(265px,88%); }
+.story-copy { max-width: 460px; }
+.story-copy h1 { font-size: clamp(36px,4.2vw,53px); letter-spacing: -.055em; }
+.story-copy p { color: #c4cbd1; font-size: 15px; }
+.story-foot { color: #b7c0c7; }
+.auth-panel { padding: clamp(32px,5vw,60px); }
+.auth-symbol {
+  width: 58px;
+  height: 58px;
+  padding: 9px;
+  border: 1px solid #edf0f2;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(22,31,40,.06);
+}
+.auth-panel h2 { color: var(--ink); font-size: 31px; letter-spacing: -.05em; }
+.login-page form label { color: #394652; font-weight: 700; }
+.login-page form input { height: 50px; border-color: #dfe5e9; border-radius: 11px; }
+.login-page form input:focus { border-color: var(--orange); box-shadow: 0 0 0 4px rgba(245,130,32,.12); }
+.primary-btn { min-height: 49px; border-radius: 11px; }
+.auth-secure { border-color: #edf0f2; }
+@media(max-width:780px) {
+  .auth-shell { min-height: 0; border-radius: 22px; }
+  .auth-story { min-height: 270px; }
+  .story-copy { margin: 40px 0 25px; }
+  .auth-panel { padding: 34px 26px; }
+}
