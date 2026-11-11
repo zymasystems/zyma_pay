@@ -17,6 +17,7 @@
             </span>
         </a>
         <div class="invoice-topbar-actions">
+            <a class="invoice-back-link" href="clients.html">Clients</a>
             <a class="invoice-back-link" href="dashboard.html">← Dashboard</a>
             <button class="invoice-logout" id="logoutButton" type="button" title="Log out">Log out</button>
         </div>
@@ -83,9 +84,20 @@
 
             <form id="receiptForm">
                 <div class="form-grid">
+                    <div class="field full crm-client-field">
+                        <label for="receiptClientSelect">Select CRM client</label>
+                        <select id="receiptClientSelect" required>
+                            <option value="">Loading CRM clients…</option>
+                        </select>
+                        <small>Client records are managed in Zyma CRM. This directory is read-only.</small>
+                    </div>
                     <div class="field">
                         <label for="receiptClient">Client / company</label>
-                        <input id="receiptClient" type="text" autocomplete="organization" required>
+                        <input id="receiptClient" type="text" autocomplete="organization" readonly required>
+                    </div>
+                    <div class="field">
+                        <label for="receiptEmail">Client email</label>
+                        <input id="receiptEmail" type="email" autocomplete="email" readonly required>
                     </div>
                     <div class="field">
                         <label for="receiptNumber">Sales receipt number</label>
@@ -193,7 +205,8 @@
     <script src="js/auth.js?v=20261008-6"></script>
     <script src="js/session.js?v=20261008-6"></script>
     <script src="js/billing-numbering.js?v=20261008-1"></script>
-    <script src="js/sales-receipts.js?v=20261008-6"></script>
+    <script src="js/sales-receipts.js?v=20261111-1"></script>
+    <script src="js/clients.js?v=20261111-1"></script>
     <script src="js/mobile-navigation.js"></script>
 </body>
 </html>

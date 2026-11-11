@@ -111,6 +111,11 @@
         return postJson("/auth/reset-password", { email, token, newPassword });
     }
 
+    async function listClients(params = {}) {
+        const query = new URLSearchParams(params);
+        return get(`/clients${query.toString() ? `?${query}` : ""}`);
+    }
+
     async function listPayments(params = {}) {
         const query = new URLSearchParams();
         Object.entries(params).forEach(([key, value]) => {
@@ -234,7 +239,7 @@
     window.zymaApi = {
         ApiError, isEnabled, request, get, postJson, patchJson, deleteRequest,
         login, logout, getCurrentUser, firstPassword, forgotPassword, resetPassword,
-        listPayments, createPayment,
+        listClients, listPayments, createPayment,
         uploadPaymentDocument, confirmPayment, deletePayment, sendPaymentEmail, listInvoices, createInvoice,
         updateInvoice, deleteInvoice, listReceipts, createReceipt, deleteReceipt,
         listEmailTemplates, createEmailTemplate, updateEmailTemplate, listActivity,

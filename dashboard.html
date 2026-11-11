@@ -51,6 +51,11 @@
                         <span>Payments</span>
                     </button>
 
+                    <a class="nav-item" href="clients.html">
+                        <span class="nav-icon">♙</span>
+                        <span>Clients</span>
+                    </a>
+
                     <a class="nav-item" href="invoices.html">
                         <span class="nav-icon">▤</span>
                         <span>Invoices</span>
@@ -732,15 +737,19 @@
 
                                     <div class="form-grid">
 
+                                        <div class="field full crm-client-field">
+                                            <label for="paymentClientSelect">Select CRM client</label>
+                                            <select id="paymentClientSelect" required><option value="">Loading CRM clients…</option></select>
+                                            <small>Client records are managed in Zyma CRM. This directory is read-only.</small>
+                                        </div>
                                         <div class="field full">
-                                            <label>
-                                                Company / Client Name
-                                            </label>
+                                            <label>Company / Client Name</label>
 
                                             <input
                                                 type="text"
                                                 id="clientName"
-                                                placeholder="Client / company name"
+                                                placeholder="Select a CRM client above"
+                                                readonly
                                                 required
                                             >
                                         </div>
@@ -754,7 +763,8 @@
                                             <input
                                                 type="email"
                                                 id="clientEmail"
-                                                placeholder="Client email address"
+                                                placeholder="Email is loaded from CRM"
+                                                readonly
                                                 required
                                             >
                                         </div>
@@ -1201,7 +1211,8 @@
     <script src="js/api.js?v=20261008-6"></script>
     <script src="js/auth.js?v=20261008-6"></script>
     <script src="js/session.js?v=20261008-6"></script>
-    <script src="js/app.js?v=20261103-2"></script>
+    <script src="js/app.js?v=20261111-1"></script>
+    <script src="js/clients.js?v=20261111-1"></script>
 
     <script src="js/mobile-navigation.js"></script>
 </body>

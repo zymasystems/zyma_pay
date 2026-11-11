@@ -160,6 +160,7 @@ function invoiceApiStatus(status) {
 function invoiceToApiPayload(invoice) {
     return {
         invoiceNumber: invoice.number,
+        clientId: invoice.clientId || null,
         clientName: invoice.client,
         clientEmail: invoice.email,
         amount: Number(invoice.total) || 0,
@@ -946,6 +947,7 @@ invoiceForm.addEventListener("submit", async event => {
         : 0;
     const invoice = {
         number: document.getElementById("invoiceNumber").value.trim(),
+        clientId: document.getElementById("invoiceClientSelect").value,
         client: document.getElementById("invoiceClient").value.trim(),
         email: document.getElementById("invoiceEmail").value.trim(),
         billingAddress:
@@ -1001,6 +1003,7 @@ invoiceForm.addEventListener("submit", async event => {
         invoiceRegisterMessage.textContent =
             `${invoice.number} was created, but the next invoice number could not be loaded.`;
     }
+    document.getElementById("invoiceClientSelect").value = "";
     document.getElementById("invoiceClient").value = "";
     document.getElementById("invoiceEmail").value = "";
     document.getElementById("invoiceBillingAddress").value = "";

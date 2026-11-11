@@ -143,11 +143,12 @@ System:
 
 ## CORS
 
-The ASP.NET Core API must allow the exact frontend origin:
+The ASP.NET Core API must allow these exact frontend origins:
 
 `https://payments.zyma.co.za`
+`https://crm.zyma.co.za` (read-only invoice and payment visibility in the CRM)
 
-Credentials must be enabled because authentication uses an HttpOnly cookie.
+Credentials must be enabled because authentication uses an HttpOnly cookie. Never use a wildcard origin with credentials. The CRM uses its own Zyma Pay sign-in session and only calls `GET /api/invoices` and `GET /api/payments`; all access remains subject to API authorization.
 
 Do not use `AllowAnyOrigin()` together with credentialed requests.
 

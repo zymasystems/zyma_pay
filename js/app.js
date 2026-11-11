@@ -1100,8 +1100,21 @@ document.getElementById("exportOutstandingReport")?.addEventListener("click", ex
 
 function openPaymentForInvoice(invoice) {
     if (typeof showPage === "function") showPage("new-payment");
-    if (clientName) clientName.value = invoice.client || "";
-    if (clientEmail) clientEmail.value = invoice.email || "";
+    const clientSelect = document.getElementById("paymentClientSelect");
+    const invoiceEmailValue = String(invoice.email || "").trim().toLowerCase();
+    const matchingClient = clientSelect
+        ? Array.from(clientSelect.options).find(option =>
+            option.value && String(option.dataset.email || "").trim().toLowerCase() === invoiceEmailValue)
+        : null;
+    if (matchingClient) {
+        clientSelect.value = matchingClient.value;
+        clientSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    } else {
+        if (clientSelect) clientSelect.value = "";
+        if (clientName) clientName.value = "";
+        if (clientEmail) clientEmail.value = "";
+        showToast("Select a CRM client", "This invoice could not be matched to an active CRM client. Choose the correct client before recording payment.");
+    }
     if (invoiceNumber) invoiceNumber.value = invoice.number || "";
     if (amount) amount.value = Number(invoice.amount || 0).toFixed(2);
     if (paymentStatus) paymentStatus.value = "awaiting";
@@ -1136,6 +1149,7 @@ async function loadCurrentUserFromApi() {
 function getPaymentRequest() {
     const statusValue = paymentStatus.value;
     return {
+        clientId: document.getElementById("paymentClientSelect")?.value || null,
         clientName: clientName.value.trim(),
         clientEmail: clientEmail.value.trim(),
         invoiceNumber: invoiceNumber.value.trim(),
@@ -1160,6 +1174,8 @@ function resetPaymentForm() {
     if (!form) return;
 
     form.reset();
+    const clientSelect = document.getElementById("paymentClientSelect");
+    if (clientSelect) clientSelect.value = "";
     paymentStatus.value = "awaiting";
     if (paymentDate) {
         const today = new Date();

@@ -195,6 +195,7 @@ function normalizeReceipt(receipt) {
 function receiptToApiPayload(receipt) {
     return {
         receiptNumber: receipt.number,
+        clientId: receipt.clientId || null,
         clientName: receipt.client,
         clientEmail: receipt.email || "",
         reference: receipt.reference || null,
@@ -825,7 +826,9 @@ receiptForm.addEventListener("submit", async event => {
     const receipts = readReceipts();
     const receipt = {
         number: document.getElementById("receiptNumber").value.trim(),
+        clientId: document.getElementById("receiptClientSelect").value,
         client: document.getElementById("receiptClient").value.trim(),
+        email: document.getElementById("receiptEmail").value.trim(),
         date: document.getElementById("receiptDate").value,
         reference: document.getElementById("receiptReference").value.trim(),
         paymentMode: document.getElementById("receiptPaymentMode").value,
